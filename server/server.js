@@ -11,7 +11,10 @@ const app = express();
 app.use(express.json());
 
 // ✅ CORS FIX
-app.use(cors());
+app.use(cors({
+  origin: "https://chatting-app-beta-umber.vercel.app",
+  credentials: true
+}));
 
 // ✅ DB CONNECT
 mongoose
