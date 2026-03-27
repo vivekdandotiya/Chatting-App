@@ -1,0 +1,29 @@
+# node modules
+node_modules/
+
+# env files
+.env
+
+# logs
+logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+
+# build folders
+dist/
+build/
+
+# VS Code
+.vscode/
+
+# cache
+.cache/
+
+# uploads (if any future)
+uploads/
+
+# package lock optional
+package-lock.json

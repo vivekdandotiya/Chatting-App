@@ -1,0 +1,31 @@
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import Sidebar from "../components/Sidebar";
+
+function Chat() {
+  const [users, setUsers] = useState([]);
+  const currentUser = JSON.parse(localStorage.getItem("user"));
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      const res = await axios.get("http://localhost:5000/api/users");
+
+      // ❌ remove logged-in user
+      const filtered = res.data.filter(
+        (u) => u._id !== currentUser._id
+      );
+
+      setUsers(filtered);
+    };
+
+    fetchUsers();
+  }, []);
+
+  return (
+    <div className="flex h-screen">
+      <Sidebar users={users} />
+    </div>
+  );
+}
+
+export default Chat;
