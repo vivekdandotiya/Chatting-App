@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io("http://localhost:5000");
+io(import.meta.env.VITE_BACKEND_URL)
 
 function SingleChat() {
   const { id } = useParams();
@@ -20,7 +20,7 @@ function SingleChat() {
   useEffect(() => {
     const fetchMessages = async () => {
       const res = await axios.get(
-        `http://localhost:5000/api/messages/${user._id}/${id}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
       );
       setMessages(res.data);
     };
