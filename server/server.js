@@ -4,6 +4,11 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const mongoose = require("mongoose");
+// ✅ IMPORT ROUTES
+const authRoutes = require("./routes/authRoutes");
+
+// ✅ USE ROUTES
+app.use("/api/auth", authRoutes);
 
 const Message = require("./models/Message");
 
