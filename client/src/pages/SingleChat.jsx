@@ -2,8 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
-
-io(import.meta.env.VITE_BACKEND_URL)
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 function SingleChat() {
   const { id } = useParams();
@@ -11,24 +10,33 @@ function SingleChat() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
+  if (!user) return <div className="text-white p-5">Loading...</div>;
+
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
 
   const bottomRef = useRef();
 
   // 🔥 LOAD CHAT HISTORY
-  useEffect(() => {
-    const fetchMessages = async () => {
+ useEffect(() => {
+  if (!user || !user._id) return; // 🔥 FIX
+
+  const fetchMessages = async () => {
+    try {
       const res = await axios.get(
         `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
       );
       setMessages(res.data);
-    };
+    } catch (err) {
+      console.log("ERROR:", err);
+    }
+  };
 
-    fetchMessages();
-    socket.emit("setup", user._id);
-  }, [id, user]);
+  fetchMessages();
 
+  socket.emit("setup", user._id);
+
+}, [id, user]);
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
     socket.on("receiveMessage", (msg) => {
