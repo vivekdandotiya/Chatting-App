@@ -12,7 +12,7 @@ function ChatWindow({ socket, user, selectedUser }) {
       if (!selectedUser) return;
 
       const res = await axios.get(
-        `http://localhost:5000/api/messages/${user._id}/${selectedUser._id}`
+        `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${selectedUser._id}`
       );
 
       setMessages(res.data);

@@ -8,7 +8,7 @@ function Chat() {
 
   useEffect(() => {
     const fetchUsers = async () => {
-      const res = await axios.get("http://localhost:5000/api/users");
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/users`);
 
       // ❌ remove logged-in user
       const filtered = res.data.filter(
