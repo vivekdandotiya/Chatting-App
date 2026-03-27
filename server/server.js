@@ -11,12 +11,7 @@ const app = express();
 app.use(express.json());
 
 // ✅ CORS FIX
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST"],
-  })
-);
+app.use(cors());
 
 // ✅ DB CONNECT
 mongoose
