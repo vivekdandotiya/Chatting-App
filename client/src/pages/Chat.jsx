@@ -4,13 +4,23 @@ import Sidebar from "../components/Sidebar";
 
 function Chat() {
   const [users, setUsers] = useState([]);
-  const currentUser = JSON.parse(sessionStorage.getItem("user"));
+  const [unread, setUnread] = useState({});
+
+  const currentUser =
+    JSON.parse(sessionStorage.getItem("user")) ||
+    JSON.parse(localStorage.getItem("user"));
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/users`);
+    if (!currentUser || !currentUser._id) {
+      console.log("User missing ❌");
+      return;
+    }
 
-      // ❌ remove logged-in user
+    const fetchUsers = async () => {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/users`
+      );
+
       const filtered = res.data.filter(
         (u) => u._id !== currentUser._id
       );
@@ -18,12 +28,26 @@ function Chat() {
       setUsers(filtered);
     };
 
+    const fetchUnread = async () => {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/unread/${currentUser._id}`
+      );
+
+      const obj = {};
+      res.data.forEach((item) => {
+        obj[item._id] = item.count;
+      });
+
+      setUnread(obj);
+    };
+
     fetchUsers();
+    fetchUnread();
   }, []);
 
   return (
     <div className="flex h-screen">
-      <Sidebar users={users} />
+      <Sidebar users={users} unread={unread} />
     </div>
   );
 }
