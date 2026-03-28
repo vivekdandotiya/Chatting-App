@@ -23,35 +23,44 @@ function SingleChat() {
     Notification.requestPermission();
   }, []);
 
+  if (!user || !user._id) {
+  return <h2 className="text-white text-center mt-10">Loading...</h2>;
+}
+
   // 🔥 LOAD MESSAGES
   useEffect(() => {
-    if (!user || !id) return;
+  if (!user || !id) return;
 
-    const fetchMessages = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
-        );
+  const fetchMessages = async () => {
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
+      );
 
-        setMessages(res.data || []);
-      } catch (err) {
-        console.log(err);
-      }
-    };
+      setMessages(res.data || []);
+    } catch (err) {
+      console.log(err);
+    }
+  };
 
-    fetchMessages();
-    setTimeout(fetchMessages, 3000);
+  fetchMessages();
+
+  // ✅ mark read
+  socket.emit("markAsRead", {
+    sender: id,
+    receiver: user._id,
+  });
+
+}, [id, user]);
+    
 
     useEffect(() => {
-  socket.emit("setup", user._id);
-}, []);
+  if (user?._id) {
+    socket.emit("setup", user._id);
+  }
+}, [user]);
 
-    socket.emit("markAsRead", {
-      sender: id,
-      receiver: user._id,
-    });
-
-  }, [id]);
+    
 
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
