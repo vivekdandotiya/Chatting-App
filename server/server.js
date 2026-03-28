@@ -19,6 +19,26 @@ app.use(cors({
 
 app.use("/api/auth", authRoutes);
 
+// 🔥 UNREAD COUNT
+app.get("/api/unread/:userId", async (req, res) => {
+  const counts = await Message.aggregate([
+    {
+      $match: {
+        receiver: req.params.userId,
+        status: { $ne: "read" },
+      },
+    },
+    {
+      $group: {
+        _id: "$sender",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  res.json(counts);
+});
+
 // DB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("MongoDB Connected"))
@@ -73,23 +93,47 @@ io.on("connection", (socket) => {
 
   // 🔥 SEND MESSAGE
   socket.on("sendMessage", async (msg) => {
-    const newMsg = await Message.create(msg);
-
-    const receiverSockets = users[msg.receiver];
-
-    if (receiverSockets) {
-      receiverSockets.forEach((sockId) => {
-        io.to(sockId).emit("receiveMessage", newMsg);
-
-        io.to(sockId).emit("notification", {
-          from: msg.senderName,
-          content: msg.content,
-        });
-      });
-    }
-
-    socket.emit("receiveMessage", newMsg);
+  const newMsg = await Message.create({
+    ...msg,
+    status: "sent",
   });
+
+  const receiverSockets = users[msg.receiver];
+
+  // ✅ DELIVERED
+  if (receiverSockets) {
+    newMsg.status = "delivered";
+    await newMsg.save();
+
+    receiverSockets.forEach((sockId) => {
+      io.to(sockId).emit("receiveMessage", newMsg);
+    });
+  }
+
+  socket.emit("receiveMessage", newMsg);
+});
+
+socket.on("markAsRead", async ({ sender, receiver }) => {
+  await Message.updateMany(
+    {
+      sender,
+      receiver,
+      status: { $ne: "read" },
+    },
+    {
+      status: "read",
+      readAt: new Date(),
+    }
+  );
+
+  const senderSockets = users[sender];
+
+  if (senderSockets) {
+    senderSockets.forEach((sockId) => {
+      io.to(sockId).emit("messagesRead", receiver);
+    });
+  }
+});
 
   // 🔥 TYPING
   socket.on("typing", ({ sender, receiver }) => {

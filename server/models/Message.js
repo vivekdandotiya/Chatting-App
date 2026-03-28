@@ -2,10 +2,18 @@ const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    sender: String,
     senderName: String,
-    receiver: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    receiver: String,
     content: String,
+
+    status: {
+      type: String,
+      enum: ["sent", "delivered", "read"],
+      default: "sent",
+    },
+
+    readAt: Date,
   },
   { timestamps: true }
 );

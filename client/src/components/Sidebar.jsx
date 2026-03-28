@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Sidebar({ users }) {
+function Sidebar({ users, unread }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredId, setHoveredId] = useState(null);
@@ -145,6 +145,12 @@ function Sidebar({ users }) {
                           Active now
                         </p>
                       </div>
+
+                      {unread && unread[u._id] > 0 && (
+      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+        {unread[u._id]}
+      </span>
+    )}
 
                       {/* 3D ANIMATED ELEMENT */}
                       <div className="relative w-10 h-10 flex-shrink-0">
