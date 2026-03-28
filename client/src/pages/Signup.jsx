@@ -1,72 +1,109 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 function Signup() {
+  const navigate = useNavigate();
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const navigate = useNavigate();
+  const [confirmPass, setConfirmPass] = useState("");
+  const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const submitHandler = async () => {
+  const handleSignup = async (e) => {
+    e.preventDefault();
+
+    if (!name || !email || !password || !confirmPass) {
+      alert("Please fill all fields");
+      return;
+    }
+
+    if (password !== confirmPass) {
+      alert("Passwords do not match ❌");
+      return;
+    }
+
     try {
-      console.log("SENDING:", { name, email, password });
+      setLoading(true);
 
       const res = await axios.post(
-        `${import.meta.env.VITE_BACKEND_URL}/api/auth/register`,
+        `${import.meta.env.VITE_BACKEND_URL}/api/auth/signup`,
         { name, email, password }
       );
 
-      console.log("RESPONSE:", res.data);
-
       sessionStorage.setItem("user", JSON.stringify(res.data));
+
       navigate("/chat");
     } catch (err) {
-      console.log("ERROR FULL:", err);
-      console.log("ERROR RESPONSE:", err.response);
-      alert(err.response?.data?.message || "Signup failed");
+      alert("Signup failed (User may already exist)");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100">
-      <div className="p-6 bg-white shadow rounded w-80">
-        <h2 className="text-xl mb-4 font-bold">Signup</h2>
+   <div className="min-h-screen flex items-center justify-center bg-black">
 
-        <input
-          className="w-full border p-2 mb-2"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+  <div className="w-[380px] p-8 rounded-2xl bg-[#111] border border-gray-800 shadow-2xl">
 
-        <input
-          className="w-full border p-2 mb-2"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+    <h1 className="text-3xl font-semibold text-white text-center mb-8">
+      Create Account
+    </h1>
 
-        <input
-          className="w-full border p-2 mb-2"
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+    <form onSubmit={handleSignup} className="space-y-5">
 
-        <button
-          onClick={submitHandler}
-          className="w-full bg-green-500 text-white p-2 rounded"
-        >
-          Signup
-        </button>
+      <input
+        type="text"
+        placeholder="Full Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white"
+      />
 
-        <p className="mt-2 text-sm">
-          Already have account? <Link to="/">Login</Link>
-        </p>
-      </div>
-    </div>
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white"
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white"
+      />
+
+      <input
+        type="password"
+        placeholder="Confirm Password"
+        value={confirmPass}
+        onChange={(e) => setConfirmPass(e.target.value)}
+        className="w-full px-4 py-3 bg-black border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-white"
+      />
+
+      <button className="w-full py-3 bg-white text-black font-semibold rounded-lg hover:bg-gray-200 transition">
+        Signup
+      </button>
+
+    </form>
+
+    <p className="text-gray-400 text-sm text-center mt-6">
+      Already have an account?{" "}
+      <span
+        onClick={() => navigate("/login")}
+        className="text-white cursor-pointer hover:underline"
+      >
+        Login
+      </span>
+    </p>
+
+  </div>
+</div>
   );
 }
 
