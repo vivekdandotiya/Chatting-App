@@ -13,7 +13,7 @@ function Login() {
       { email, password }
     );
 
-    localStorage.setItem("user", JSON.stringify(data));
+    sessionStorage.setItem("user", JSON.stringify(data));
     navigate("/chat");
   };
 
