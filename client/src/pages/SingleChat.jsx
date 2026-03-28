@@ -57,13 +57,14 @@ function SingleChat() {
     setMessages((prev) => [...prev, msg]);
   });
 
-  socket.on("messageDelivered", (msg) => {
-    setMessages((prev) =>
-      prev.map((m) =>
-        m._id === msg._id ? { ...m, status: "delivered" } : m
-      )
-    );
+  socket.on("receiveMessage", (msg) => {
+  setMessages((prev) => {
+    const exists = prev.some((m) => m._id === msg._id);
+    if (exists) return prev;
+
+    return [...prev, msg];
   });
+});
 
   socket.on("messageRead", ({ receiver }) => {
     setMessages((prev) =>
@@ -87,17 +88,24 @@ function SingleChat() {
 
   // 🔥 SEND MESSAGE
   const sendMessage = () => {
-    if (!message.trim()) return;
+  if (!message.trim()) return;
 
-    socket.emit("sendMessage", {
-      sender: user._id,
-      senderName: user.name,
-      receiver: id,
-      content: message,
-    });
-
-    setMessage("");
+  const tempMsg = {
+    _id: Date.now(), // 🔥 important
+    sender: user._id,
+    receiver: id,
+    content: message,
+    status: "sent",
+    createdAt: new Date(),
   };
+
+  socket.emit("sendMessage", tempMsg);
+
+  // 🔥 UI me turant show
+  setMessages((prev) => [...prev, tempMsg]);
+
+  setMessage("");
+};
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
@@ -118,7 +126,7 @@ function SingleChat() {
       {/* CHAT */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((msg, i) => {
-          const isMe = msg.sender === user._id;
+          const isMe = msg.sender.toString() === user._id.toString();
 
           return (
             <div
