@@ -3,10 +3,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 
-// ✅ FIXED SOCKET
 const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ["websocket"],
-  withCredentials: true,
 });
 
 function SingleChat() {
@@ -20,9 +18,14 @@ function SingleChat() {
 
   const bottomRef = useRef();
 
-  // 🔥 LOAD CHAT HISTORY
+  // 🔔 REQUEST NOTIFICATION
   useEffect(() => {
-    if (!user || !user._id || !id) return;
+    Notification.requestPermission();
+  }, []);
+
+  // 🔥 LOAD MESSAGES
+  useEffect(() => {
+    if (!user || !id) return;
 
     const fetchMessages = async () => {
       try {
@@ -32,19 +35,15 @@ function SingleChat() {
 
         setMessages(res.data || []);
       } catch (err) {
-        console.log("Message fetch error:", err);
-        setMessages([]);
+        console.log(err);
       }
     };
 
     fetchMessages();
-
-    // 🔥 retry (Render sleep fix)
     setTimeout(fetchMessages, 3000);
 
     socket.emit("setup", user._id);
 
-    // 🔥 MARK READ
     socket.emit("markAsRead", {
       sender: id,
       receiver: user._id,
@@ -55,16 +54,17 @@ function SingleChat() {
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
     socket.on("receiveMessage", (msg) => {
-      if (
-        (msg.sender === id && msg.receiver === user._id) ||
-        (msg.sender === user._id && msg.receiver === id)
-      ) {
-        setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => [...prev, msg]);
+
+      if (msg.sender !== user._id) {
+        new Notification("New Message", {
+          body: msg.content,
+        });
       }
     });
 
     return () => socket.off("receiveMessage");
-  }, [id, user]);
+  }, []);
 
   // 🔥 AUTO SCROLL
   useEffect(() => {
@@ -96,13 +96,13 @@ function SingleChat() {
     <div className="flex flex-col h-screen bg-[#0b141a] text-white">
 
       {/* HEADER */}
-      <div className="bg-[#202c33] px-5 py-4 flex items-center gap-4">
+      <div className="bg-[#202c33] p-4 flex gap-4">
         <button onClick={() => navigate("/chat")}>←</button>
         <h2>Chat</h2>
       </div>
 
-      {/* CHAT AREA */}
-      <div className="flex-1 overflow-y-auto px-6 py-4 space-y-3">
+      {/* CHAT */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((msg, i) => {
           const isMe = msg.sender === user._id;
 
@@ -121,8 +121,7 @@ function SingleChat() {
 
                 <p>{msg.content}</p>
 
-                {/* ✅ TIME + TICKS */}
-                <div className="text-[10px] flex gap-1 justify-end mt-1">
+                <div className="text-[10px] flex gap-1 justify-end">
                   <span>
                     {new Date(msg.createdAt).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -155,10 +154,16 @@ function SingleChat() {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyPress}
-          className="flex-1 p-2 rounded"
+          placeholder="Type a message..."
+          className="flex-1 px-4 py-2 rounded-full bg-[#2a3942] text-white"
         />
 
-        <button onClick={sendMessage}>Send</button>
+        <button
+          onClick={sendMessage}
+          className="bg-green-500 px-4 rounded"
+        >
+          Send
+        </button>
       </div>
     </div>
   );

@@ -212,6 +212,12 @@ function Sidebar({ users, unread }) {
                             Offline
                           </p>
                         </div>
+                        {/* 🔥 UNREAD BADGE (ADD HERE ALSO) */}
+{unread && unread[u._id] > 0 && (
+  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+    {unread[u._id]}
+  </span>
+)}
                         <svg
                           className="w-5 h-5 text-gray-300 flex-shrink-0"
                           fill="none"
