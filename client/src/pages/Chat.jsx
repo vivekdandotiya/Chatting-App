@@ -74,6 +74,7 @@ function Chat() {
       <Sidebar
         users={users}
         unread={unread}
+        setUnread={setUnread} 
         onlineUsers={onlineUsers}
       />
     </div>

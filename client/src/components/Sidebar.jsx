@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-function Sidebar({ users, unread }) {
+function Sidebar({ users, unread, setUnread }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [hoveredId, setHoveredId] = useState(null);
@@ -114,7 +114,14 @@ function Sidebar({ users, unread }) {
                       key={u._id}
                       onMouseEnter={() => setHoveredId(u._id)}
                       onMouseLeave={() => setHoveredId(null)}
-                      onClick={() => navigate(`/chat/${u._id}`)}
+                      onClick={() => {
+  navigate(`/chat/${u._id}`);
+
+  setUnread((prev) => ({
+    ...prev,
+    [u._id]: 0,
+  }));
+}}
                       className="flex items-center gap-3 p-3 m-1 rounded-xl hover:bg-gray-100 cursor-pointer transition-all duration-200 active:bg-gray-200 group"
                     >
                       {/* AVATAR WITH 3D EFFECT */}
@@ -196,7 +203,14 @@ function Sidebar({ users, unread }) {
                         key={u._id}
                         onMouseEnter={() => setHoveredId(u._id)}
                         onMouseLeave={() => setHoveredId(null)}
-                        onClick={() => navigate(`/chat/${u._id}`)}
+                        onClick={() => {
+  navigate(`/chat/${u._id}`);
+
+  setUnread((prev) => ({
+    ...prev,
+    [u._id]: 0,
+  }));
+}}
                         className="flex items-center gap-3 p-3 m-1 rounded-xl hover:bg-gray-100 cursor-pointer transition-all duration-200"
                       >
                         <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">

@@ -7,170 +7,114 @@ const mongoose = require("mongoose");
 
 const Message = require("./models/Message");
 const User = require("./models/User");
-const authRoutes = require("./routes/authRoutes");
 
 const app = express();
 app.use(express.json());
 
-app.use(cors({
-  origin: "https://chatting-app-beta-umber.vercel.app",
-  credentials: true
-}));
+// ✅ CORS FIX
+app.use(
+  cors({
+    origin: "*",
+    credentials: true,
+  })
+);
 
+// ✅ MONGO CONNECT
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((err) => console.log(err));
+
+// ✅ ROUTES
+const authRoutes = require("./routes/authRoutes");
 app.use("/api/auth", authRoutes);
 
-// 🔥 UNREAD COUNT
-app.get("/api/unread/:userId", async (req, res) => {
-  const counts = await Message.aggregate([
-    {
-      $match: {
-        receiver: req.params.userId,
-        status: { $ne: "read" },
-      },
-    },
-    {
-      $group: {
-        _id: "$sender",
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-
-  res.json(counts);
-});
-
-// DB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch(err => console.log(err));
-
-// USERS
+// ✅ GET USERS
 app.get("/api/users", async (req, res) => {
   const users = await User.find().select("-password");
   res.json(users);
 });
 
-// MESSAGES
+// ✅ GET MESSAGES
 app.get("/api/messages/:user1/:user2", async (req, res) => {
   const { user1, user2 } = req.params;
 
   const messages = await Message.find({
     $or: [
       { sender: user1, receiver: user2 },
-      { sender: user2, receiver: user1 }
-    ]
+      { sender: user2, receiver: user1 },
+    ],
   }).sort({ createdAt: 1 });
 
   res.json(messages);
 });
 
+// ✅ SERVER + SOCKET
 const server = http.createServer(app);
 
-// 🔥 SOCKET
 const io = new Server(server, {
   cors: {
-    origin: "https://chatting-app-beta-umber.vercel.app",
-    methods: ["GET", "POST"],
-    credentials: true
-  }
+    origin: "*",
+  },
 });
 
+// 🔥 USER SOCKET MAP
 const users = {};
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // 🔥 SETUP (MULTI TAB SUPPORT)
+  // 🔥 SETUP USER
   socket.on("setup", (userId) => {
-    if (!users[userId]) {
-      users[userId] = [];
-    }
-
-    users[userId].push(socket.id);
-
-    io.emit("onlineUsers", Object.keys(users));
+    users[userId] = socket.id;
   });
 
   // 🔥 SEND MESSAGE
-  socket.on("sendMessage", async (msg) => {
-  const newMsg = await Message.create({
-    ...msg,
-    status: "sent",
-  });
-
-  const receiverSockets = users[msg.receiver];
-
-  // ✅ DELIVERED
-  if (receiverSockets) {
-    newMsg.status = "delivered";
-    await newMsg.save();
-
-    receiverSockets.forEach((sockId) => {
-      io.to(sockId).emit("receiveMessage", newMsg);
+  socket.on("sendMessage", async (data) => {
+    const message = await Message.create({
+      sender: data.sender,
+      receiver: data.receiver,
+      content: data.content,
+      status: "sent",
     });
-  }
 
-  socket.emit("receiveMessage", newMsg);
-});
+    const receiverSocket = users[data.receiver];
+    const senderSocket = users[data.sender];
 
-socket.on("markAsRead", async ({ sender, receiver }) => {
-  await Message.updateMany(
-    {
-      sender,
-      receiver,
-      status: { $ne: "read" },
-    },
-    {
-      status: "read",
-      readAt: new Date(),
+    // send to receiver
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("receiveMessage", message);
     }
-  );
 
-  const senderSockets = users[sender];
-
-  if (senderSockets) {
-    senderSockets.forEach((sockId) => {
-      io.to(sockId).emit("messagesRead", receiver);
-    });
-  }
-});
-
-  // 🔥 TYPING
-  socket.on("typing", ({ sender, receiver }) => {
-    const receiverSockets = users[receiver];
-
-    if (receiverSockets) {
-      receiverSockets.forEach((sockId) => {
-        io.to(sockId).emit("typing", sender);
-      });
+    // send delivered tick
+    if (senderSocket) {
+      io.to(senderSocket).emit("messageDelivered", message);
     }
   });
 
-  socket.on("stopTyping", ({ sender, receiver }) => {
-    const receiverSockets = users[receiver];
+  // 🔥 MARK AS READ
+  socket.on("markAsRead", async ({ sender, receiver }) => {
+    await Message.updateMany(
+      { sender, receiver, status: { $ne: "read" } },
+      { status: "read" }
+    );
 
-    if (receiverSockets) {
-      receiverSockets.forEach((sockId) => {
-        io.to(sockId).emit("stopTyping", sender);
-      });
+    const senderSocket = users[sender];
+
+    if (senderSocket) {
+      io.to(senderSocket).emit("messageRead", { receiver });
     }
   });
 
-  // 🔥 DISCONNECT FIX
   socket.on("disconnect", () => {
-    for (let userId in users) {
-      users[userId] = users[userId].filter(
-        (id) => id !== socket.id
-      );
-
-      if (users[userId].length === 0) {
-        delete users[userId];
+    for (let key in users) {
+      if (users[key] === socket.id) {
+        delete users[key];
       }
     }
-
-    io.emit("onlineUsers", Object.keys(users));
   });
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log("Server running on port", PORT));
+
+server.listen(PORT, () => console.log("Server running on", PORT));

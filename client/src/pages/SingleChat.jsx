@@ -53,18 +53,32 @@ function SingleChat() {
 
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
-    socket.on("receiveMessage", (msg) => {
-      setMessages((prev) => [...prev, msg]);
+  socket.on("receiveMessage", (msg) => {
+    setMessages((prev) => [...prev, msg]);
+  });
 
-      if (msg.sender !== user._id) {
-        new Notification("New Message", {
-          body: msg.content,
-        });
-      }
-    });
+  socket.on("messageDelivered", (msg) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === msg._id ? { ...m, status: "delivered" } : m
+      )
+    );
+  });
 
-    return () => socket.off("receiveMessage");
-  }, []);
+  socket.on("messageRead", ({ receiver }) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.receiver === receiver ? { ...m, status: "read" } : m
+      )
+    );
+  });
+
+  return () => {
+    socket.off("receiveMessage");
+    socket.off("messageDelivered");
+    socket.off("messageRead");
+  };
+}, []);
 
   // 🔥 AUTO SCROLL
   useEffect(() => {
@@ -130,14 +144,12 @@ function SingleChat() {
                   </span>
 
                   {isMe && (
-                    <span>
-                      {msg.status === "read"
-                        ? "✓✓"
-                        : msg.status === "delivered"
-                        ? "✓✓"
-                        : "✓"}
-                    </span>
-                  )}
+  <>
+    {msg.status === "sent" && "✓"}
+    {msg.status === "delivered" && "✓✓"}
+    {msg.status === "read" && "✓✓"}
+  </>
+)}
                 </div>
 
               </div>
