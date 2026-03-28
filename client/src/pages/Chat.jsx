@@ -4,7 +4,7 @@ import Sidebar from "../components/Sidebar";
 
 function Chat() {
   const [users, setUsers] = useState([]);
-  const currentUser = JSON.parse(localStorage.getItem("user"));
+  const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
   useEffect(() => {
     const fetchUsers = async () => {

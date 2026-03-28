@@ -19,7 +19,7 @@ function Signup() {
 
       console.log("RESPONSE:", res.data);
 
-      localStorage.setItem("user", JSON.stringify(res.data));
+      sessionStorage.setItem("user", JSON.stringify(res.data));
       navigate("/chat");
     } catch (err) {
       console.log("ERROR FULL:", err);
