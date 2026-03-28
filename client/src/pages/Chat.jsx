@@ -4,50 +4,44 @@ import Sidebar from "../components/Sidebar";
 
 function Chat() {
   const [users, setUsers] = useState([]);
-  const [unread, setUnread] = useState({});
 
-  const currentUser =
-    JSON.parse(sessionStorage.getItem("user")) ||
-    JSON.parse(localStorage.getItem("user"));
+  const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
   useEffect(() => {
-    if (!currentUser || !currentUser._id) {
-      console.log("User missing ❌");
-      return;
-    }
+    if (!currentUser || !currentUser._id) return;
 
     const fetchUsers = async () => {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/users`
-      );
+      try {
+        const res = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/users`
+        );
 
-      const filtered = res.data.filter(
-        (u) => u._id !== currentUser._id
-      );
+        const filtered = res.data.filter(
+          (u) => u._id !== currentUser._id
+        );
 
-      setUsers(filtered);
-    };
-
-    const fetchUnread = async () => {
-      const res = await axios.get(
-        `${import.meta.env.VITE_BACKEND_URL}/api/unread/${currentUser._id}`
-      );
-
-      const obj = {};
-      res.data.forEach((item) => {
-        obj[item._id] = item.count;
-      });
-
-      setUnread(obj);
+        setUsers(filtered);
+      } catch (err) {
+        console.log("Users error:", err);
+      }
     };
 
     fetchUsers();
-    fetchUnread();
+
+    // 🔥 auto refresh users (Render sleep fix)
+    const interval = setInterval(fetchUsers, 5000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // 🔥 prevent blank screen
+  if (!users.length) {
+    return <h2 className="text-center mt-10">Loading users...</h2>;
+  }
 
   return (
     <div className="flex h-screen">
-      <Sidebar users={users} unread={unread} />
+      <Sidebar users={users} />
     </div>
   );
 }
