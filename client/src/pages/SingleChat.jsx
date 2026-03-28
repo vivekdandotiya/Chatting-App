@@ -42,7 +42,9 @@ function SingleChat() {
     fetchMessages();
     setTimeout(fetchMessages, 3000);
 
-    socket.emit("setup", user._id);
+    useEffect(() => {
+  socket.emit("setup", user._id);
+}, []);
 
     socket.emit("markAsRead", {
       sender: id,
@@ -54,17 +56,20 @@ function SingleChat() {
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
   socket.on("receiveMessage", (msg) => {
-    setMessages((prev) => [...prev, msg]);
-  });
-
-  socket.on("receiveMessage", (msg) => {
-  setMessages((prev) => {
-    const exists = prev.some((m) => m._id === msg._id);
-    if (exists) return prev;
-
-    return [...prev, msg];
-  });
+    setMessages((prev) => {
+  const exists = prev.some((m) => m._id === msg._id);
+  if (exists) return prev;
+  return [...prev, msg];
 });
+  });
+
+  socket.on("messageDelivered", (msg) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === msg._id ? { ...m, status: "delivered" } : m
+      )
+    );
+  });
 
   socket.on("messageRead", ({ receiver }) => {
     setMessages((prev) =>
@@ -90,19 +95,21 @@ function SingleChat() {
   const sendMessage = () => {
   if (!message.trim()) return;
 
-  const tempMsg = {
-    _id: Date.now(), // 🔥 important
+  const newMsg = {
+    _id: Date.now(), // temporary id
     sender: user._id,
     receiver: id,
+    senderName: user.name,
     content: message,
     status: "sent",
     createdAt: new Date(),
   };
 
-  socket.emit("sendMessage", tempMsg);
+  // ✅ UI me turant add
+  setMessages((prev) => [...prev, newMsg]);
 
-  // 🔥 UI me turant show
-  setMessages((prev) => [...prev, tempMsg]);
+  // ✅ backend ko bhejo
+  socket.emit("sendMessage", newMsg);
 
   setMessage("");
 };
@@ -126,7 +133,7 @@ function SingleChat() {
       {/* CHAT */}
       <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((msg, i) => {
-          const isMe = msg.sender.toString() === user._id.toString();
+          const isMe = msg.sender === user._id;
 
           return (
             <div
