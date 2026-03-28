@@ -60,52 +60,70 @@ const users = {};
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // ONLINE USERS
+  // 🔥 SETUP (MULTI TAB SUPPORT)
   socket.on("setup", (userId) => {
-    users[userId] = socket.id;
+    if (!users[userId]) {
+      users[userId] = [];
+    }
+
+    users[userId].push(socket.id);
+
     io.emit("onlineUsers", Object.keys(users));
   });
 
-  // SEND MESSAGE + NOTIFICATION
+  // 🔥 SEND MESSAGE
   socket.on("sendMessage", async (msg) => {
     const newMsg = await Message.create(msg);
 
-    const receiverSocket = users[msg.receiver];
+    const receiverSockets = users[msg.receiver];
 
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("receiveMessage", newMsg);
+    if (receiverSockets) {
+      receiverSockets.forEach((sockId) => {
+        io.to(sockId).emit("receiveMessage", newMsg);
 
-      io.to(receiverSocket).emit("notification", {
-        from: msg.senderName,
-        content: msg.content,
+        io.to(sockId).emit("notification", {
+          from: msg.senderName,
+          content: msg.content,
+        });
       });
     }
 
     socket.emit("receiveMessage", newMsg);
   });
 
-  // TYPING
+  // 🔥 TYPING
   socket.on("typing", ({ sender, receiver }) => {
-    const receiverSocket = users[receiver];
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("typing", sender);
+    const receiverSockets = users[receiver];
+
+    if (receiverSockets) {
+      receiverSockets.forEach((sockId) => {
+        io.to(sockId).emit("typing", sender);
+      });
     }
   });
 
   socket.on("stopTyping", ({ sender, receiver }) => {
-    const receiverSocket = users[receiver];
-    if (receiverSocket) {
-      io.to(receiverSocket).emit("stopTyping", sender);
+    const receiverSockets = users[receiver];
+
+    if (receiverSockets) {
+      receiverSockets.forEach((sockId) => {
+        io.to(sockId).emit("stopTyping", sender);
+      });
     }
   });
 
-  // DISCONNECT
+  // 🔥 DISCONNECT FIX
   socket.on("disconnect", () => {
-    for (let key in users) {
-      if (users[key] === socket.id) {
-        delete users[key];
+    for (let userId in users) {
+      users[userId] = users[userId].filter(
+        (id) => id !== socket.id
+      );
+
+      if (users[userId].length === 0) {
+        delete users[userId];
       }
     }
+
     io.emit("onlineUsers", Object.keys(users));
   });
 });
