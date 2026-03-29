@@ -168,13 +168,30 @@ function SingleChat() {
   };
 
   const addReaction = (messageId, emoji) => {
-    if (typeof messageId === 'number') return; // Don't allow reactions on temp IDs
+    if (!messageId || !user?._id) return;
     
+    // Optimistic Update
+    setMessages(prev => prev.map(m => {
+      if (m._id === messageId) {
+        const reactions = [...(m.reactions || [])];
+        const existingIdx = reactions.findIndex(r => r.user === user._id);
+        if (existingIdx > -1) {
+          if (reactions[existingIdx].emoji === emoji) reactions.splice(existingIdx, 1);
+          else reactions[existingIdx].emoji = emoji;
+        } else {
+          reactions.push({ user: user._id, emoji });
+        }
+        return { ...m, reactions };
+      }
+      return m;
+    }));
+
     socket.emit("sendReaction", {
-      messageId,
+      messageId: String(messageId),
       userId: user._id,
       emoji,
     });
+    
     setHoveredMessageId(null);
     setShowPickerFor(null);
   };
@@ -250,18 +267,33 @@ function SingleChat() {
                       onMouseEnter={() => setHoveredMessageId(msg._id)}
                       onMouseLeave={() => setHoveredMessageId(null)}
                     >
+                      {/* REACTION PICKER TRIGGER (SMILEY) */}
+                      {hoveredMessageId === msg._id && !isMe && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
+                          className="p-1 text-gray-400 hover:text-white transition-opacity duration-200"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                        </button>
+                      )}
+
                       {/* REACTION PICKER */}
-                      {(hoveredMessageId === msg._id || showPickerFor === msg._id) && typeof msg._id !== 'number' && (
-                        <div className={`
-                          absolute -top-10 z-10 flex gap-1.5 bg-[#18181b] border border-[#27272a] 
-                          p-1.5 rounded-full shadow-2xl transition-all duration-200
-                          ${isMe ? 'right-0' : 'left-0'}
-                        `}>
+                      {showPickerFor === msg._id && (
+                        <div 
+                          onClick={(e) => e.stopPropagation()}
+                          className={`
+                            absolute -top-12 z-20 flex gap-2 bg-[#1f1f23] border border-[#3f3f46] 
+                            p-2 rounded-full shadow-2xl transition-all duration-200
+                            ${isMe ? 'right-0' : 'left-0'}
+                          `}
+                        >
                           {emojis.map((emoji) => (
                             <button
                               key={emoji}
-                              onClick={() => addReaction(msg._id, emoji)}
-                              className="hover:scale-125 transition-transform p-1 rounded-full hover:bg-[#27272a]"
+                              onClick={(e) => { e.stopPropagation(); addReaction(msg._id, emoji); }}
+                              className="hover:scale-125 transition-transform p-1 rounded-full hover:bg-gray-800"
                             >
                               {emoji}
                             </button>
@@ -272,11 +304,22 @@ function SingleChat() {
                       <div 
                         onClick={() => setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
                         className={`
-                          cursor-pointer transition-all relative
+                          cursor-pointer transition-all relative group/bubble
                           ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
                           px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
                         `}
                       >
+                        {/* SMILEY BUTTON INSIDE FOR ME */}
+                        {isMe && hoveredMessageId === msg._id && (
+                          <div 
+                            className="absolute -left-8 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        )}
                         {!isMe && (
                           <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
                             {msg.senderName}
@@ -305,20 +348,21 @@ function SingleChat() {
                         {/* DISPLAY REACTIONS */}
                         {msg.reactions && msg.reactions.length > 0 && (
                           <div className={`
-                            absolute -bottom-2 flex -space-x-1 items-center bg-[#18181b] border border-[#27272a] 
-                            px-1.5 py-0.5 rounded-full shadow-lg text-[12px]
+                            absolute -bottom-4 flex -space-x-1 items-center z-10
                             ${isMe ? 'right-2' : 'left-2'}
                           `}>
-                            {msg.reactions.map((r, idx) => (
-                              <span key={idx} title={`Reacted by ${r.user === user._id ? 'You' : 'Others'}`}>
-                                {r.emoji}
-                              </span>
-                            ))}
-                            {msg.reactions.length > 1 && (
-                              <span className="ml-1 text-[10px] text-gray-400 font-bold">
-                                {msg.reactions.length}
-                              </span>
-                            )}
+                            <div className="flex bg-[#202023] border border-[#2d2d30] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
+                              {msg.reactions.map((r, idx) => (
+                                <span key={idx} className="text-[14px]">
+                                  {r.emoji}
+                                </span>
+                              ))}
+                              {msg.reactions.length > 1 && (
+                                <span className="ml-1 text-[10px] text-gray-400 font-bold flex items-center">
+                                  {msg.reactions.length}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
