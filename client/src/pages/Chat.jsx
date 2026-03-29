@@ -11,6 +11,7 @@ function Chat() {
   const [users, setUsers] = useState([]);
   const [unread, setUnread] = useState({});
   const [onlineUsers, setOnlineUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
@@ -31,6 +32,8 @@ function Chat() {
         setUsers(filtered);
       } catch (err) {
         console.log("Users error:", err);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -76,8 +79,8 @@ function Chat() {
     };
   }, []);
 
-  if (!users.length) {
-    return <h2 className="text-center mt-10">Loading users...</h2>;
+  if (loading) {
+    return <div className="h-[100dvh] bg-[#0a0a0a] flex items-center justify-center text-white"><h2 className="text-xl">Loading users...</h2></div>;
   }
 
   return (
