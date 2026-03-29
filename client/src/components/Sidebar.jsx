@@ -1,13 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io(import.meta.env.VITE_BACKEND_URL, {
-  transports: ["websocket"],
-});
-
-function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers }) {
+function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("chats");
@@ -41,6 +34,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers }) {
       if (refreshUsers) refreshUsers();
     } catch (err) {
       console.error(err);
+      alert("Invite failed: " + (err.response?.data?.error || err.message));
     } finally {
       setLoadingAction(null);
     }
@@ -60,6 +54,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers }) {
       if (refreshUsers) refreshUsers();
     } catch (err) {
       console.error(err);
+      alert("Response failed: " + (err.response?.data?.error || err.message));
     } finally {
       setLoadingAction(null);
     }

@@ -7,6 +7,8 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ["websocket"],
 });
 
+export { socket };
+
 function Chat() {
   const [users, setUsers] = useState([]);
   const [unread, setUnread] = useState({});
@@ -84,6 +86,7 @@ function Chat() {
         setUnread={setUnread} 
         onlineUsers={onlineUsers}
         refreshUsers={refreshUsers}
+        socket={socket}
       />
     </div>
   );
