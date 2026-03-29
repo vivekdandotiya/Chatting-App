@@ -66,6 +66,8 @@ app.get("/api/users", async (req, res) => {
         } else if (connection.status === "pending") {
           connectionStatus =
             connection.sender.toString() === userId ? "pending_sent" : "pending_received";
+        } else if (connection.status === "rejected") {
+          connectionStatus = "rejected";
         }
       }
 
@@ -87,7 +89,18 @@ app.post("/api/connections/request", async (req, res) => {
   const existing = await Connection.findOne({
     $or: [{ sender, receiver }, { sender: receiver, receiver: sender }]
   });
-  if (existing) return res.status(400).json({ error: "Connection exists" });
+
+  if (existing) {
+    if (existing.status === "rejected") {
+      // Re-open rejected request
+      existing.status = "pending";
+      existing.sender = sender;
+      existing.receiver = receiver;
+      await existing.save();
+      return res.json(existing);
+    }
+    return res.status(400).json({ error: "Connection already exists" });
+  }
 
   const connection = await Connection.create({ sender, receiver, status: "pending" });
   res.json(connection);
