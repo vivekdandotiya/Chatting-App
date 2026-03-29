@@ -15,9 +15,12 @@ function SingleChat() {
 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
-  const [recipientName, setRecipientName] = useState("");
+  const [recipientName, setRecipientName] = useState("Chat");
+  const [isLoading, setIsLoading] = useState(true);
 
   const bottomRef = useRef();
+  const inputRef = useRef();
+  const contentRef = useRef();
 
   // 🔔 REQUEST NOTIFICATION
   useEffect(() => {
@@ -26,7 +29,12 @@ function SingleChat() {
 
   if (!user || !user._id) {
     return (
-      <h2 className="text-white text-center mt-10">Loading...</h2>
+      <div className="w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-300">Loading...</p>
+        </div>
+      </div>
     );
   }
 
@@ -36,16 +44,22 @@ function SingleChat() {
 
     const fetchMessages = async () => {
       try {
+        setIsLoading(true);
         const res = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
         );
 
         setMessages(res.data || []);
         if (res.data.length > 0) {
-          setRecipientName(res.data[0].senderName === user.name ? res.data[0].senderName : res.data[0].senderName);
+          const firstMsg = res.data[0];
+          setRecipientName(
+            firstMsg.sender === user._id ? firstMsg.senderName : firstMsg.senderName
+          );
         }
       } catch (err) {
         console.log(err);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -102,6 +116,18 @@ function SingleChat() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Handle viewport changes when keyboard appears
+  useEffect(() => {
+    const handleResize = () => {
+      setTimeout(() => {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   // 🔥 SEND MESSAGE
   const sendMessage = () => {
     if (!message.trim()) return;
@@ -119,6 +145,12 @@ function SingleChat() {
     setMessages((prev) => [...prev, newMsg]);
     socket.emit("sendMessage", newMsg);
     setMessage("");
+
+    // Focus back to input
+    setTimeout(() => {
+      inputRef.current?.focus();
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 0);
   };
 
   const handleKeyPress = (e) => {
@@ -129,15 +161,21 @@ function SingleChat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white dark:bg-black text-black dark:text-white">
+    <div className="flex flex-col h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white overflow-hidden relative">
+      {/* ANIMATED BACKGROUND */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
+      </div>
+
       {/* HEADER */}
-      <div className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 p-3 md:p-4 flex items-center gap-3 md:gap-4 sticky top-0 z-50">
+      <div className="relative z-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-700/50 px-4 py-3 sm:py-4 flex items-center gap-3 sticky top-0">
         <button
           onClick={() => navigate("/chat")}
-          className="flex items-center justify-center w-9 h-9 md:w-10 md:h-10 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+          className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 flex items-center justify-center transition-all duration-200 hover:border-slate-600/50"
         >
           <svg
-            className="w-6 h-6"
+            className="w-6 h-6 text-slate-200"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -152,28 +190,36 @@ function SingleChat() {
         </button>
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-base md:text-lg font-bold text-black dark:text-white truncate">
-            {recipientName || "Chat"}
+          <h2 className="text-base sm:text-lg font-bold text-white truncate">
+            {recipientName}
           </h2>
-          <p className="text-xs md:text-sm text-gray-500 dark:text-gray-400">
-            Active now
-          </p>
+          <p className="text-xs sm:text-sm text-slate-400">Active now</p>
         </div>
 
-        <div className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-gradient-to-br from-gray-800 to-black dark:from-gray-700 dark:to-gray-900 flex items-center justify-center">
-          <span className="text-white font-semibold text-sm md:text-base">
+        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-sm sm:text-base">
             {recipientName?.[0]?.toUpperCase() || "?"}
           </span>
         </div>
       </div>
 
-      {/* CHAT MESSAGES */}
-      <div className="flex-1 overflow-y-auto p-3 md:p-4 space-y-2 md:space-y-3 bg-white dark:bg-black">
-        {messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center">
-            <div className="w-16 md:w-20 h-16 md:h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+      {/* MESSAGES CONTAINER */}
+      <div
+        ref={contentRef}
+        className="relative z-10 flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+      >
+        {isLoading ? (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-spin mx-auto mb-3"></div>
+              <p className="text-slate-400 text-sm">Loading messages...</p>
+            </div>
+          </div>
+        ) : messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full">
+            <div className="w-16 h-16 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl flex items-center justify-center mb-4 border border-slate-700/50">
               <svg
-                className="w-8 md:w-10 h-8 md:h-10 text-gray-600 dark:text-gray-400"
+                className="w-8 h-8 text-slate-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -186,12 +232,8 @@ function SingleChat() {
                 />
               </svg>
             </div>
-            <p className="text-gray-900 dark:text-gray-100 font-semibold text-sm md:text-base">
-              Start a conversation
-            </p>
-            <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-2">
-              Send your first message below
-            </p>
+            <p className="text-slate-300 font-semibold text-base">Say hello! 👋</p>
+            <p className="text-slate-500 text-sm mt-2">Start a conversation</p>
           </div>
         ) : (
           <>
@@ -204,24 +246,24 @@ function SingleChat() {
                   className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fadeIn`}
                 >
                   <div
-                    className={`max-w-xs md:max-w-md lg:max-w-lg px-3 md:px-4 py-2 md:py-3 rounded-2xl ${
+                    className={`group relative max-w-xs sm:max-w-sm px-4 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 ${
                       isMe
-                        ? "bg-black text-white dark:bg-white dark:text-black rounded-br-none"
-                        : "bg-gray-100 text-black dark:bg-gray-900 dark:text-white rounded-bl-none"
+                        ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-none shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
+                        : "bg-slate-800/60 text-slate-100 rounded-bl-none border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/80"
                     }`}
                   >
                     {!isMe && (
-                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-400 mb-1">
+                      <p className="text-xs font-bold text-slate-400 mb-1">
                         {msg.senderName}
                       </p>
                     )}
 
-                    <p className="text-sm md:text-base break-words">
+                    <p className="text-sm sm:text-base break-words leading-relaxed">
                       {msg.content}
                     </p>
 
-                    <div className="text-[10px] md:text-xs flex items-center gap-1 justify-end mt-1 opacity-70">
-                      <span>
+                    <div className="flex items-center gap-1.5 justify-end mt-1.5">
+                      <span className="text-xs opacity-75">
                         {new Date(msg.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -229,7 +271,7 @@ function SingleChat() {
                       </span>
 
                       {isMe && (
-                        <span className="font-bold ml-1">
+                        <span className="text-xs font-bold opacity-80">
                           {msg.status === "sent" && "✓"}
                           {msg.status === "delivered" && "✓✓"}
                           {msg.status === "read" && "✓✓"}
@@ -246,30 +288,71 @@ function SingleChat() {
         )}
       </div>
 
-      {/* INPUT AREA */}
-      <div className="p-3 md:p-4 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-black flex gap-2 sticky bottom-0">
-        <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-2.5 md:py-3 rounded-full bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-black dark:focus:border-white transition-colors text-sm md:text-base"
-        />
+      {/* INPUT AREA - FIXED AT BOTTOM WITH KEYBOARD SUPPORT */}
+      <div className="relative z-20 px-3 sm:px-4 py-3 sm:py-4 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur-md">
+        <div className="flex gap-2 items-end">
+          <div className="flex-1 relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-300"></div>
+            <textarea
+              ref={inputRef}
+              value={message}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                // Auto-expand height
+                e.target.style.height = "auto";
+                e.target.style.height = Math.min(e.target.scrollHeight, 100) + "px";
+              }}
+              onKeyDown={handleKeyPress}
+              placeholder="Type a message..."
+              rows="1"
+              className="relative w-full px-4 py-3 sm:py-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:bg-slate-800 focus:border-blue-500/50 transition-all duration-300 resize-none max-h-24 text-sm sm:text-base"
+            />
+          </div>
 
-        <button
-          onClick={sendMessage}
-          disabled={!message.trim()}
-          className="flex-shrink-0 w-10 h-10 md:w-12 md:h-12 rounded-full bg-black dark:bg-white text-white dark:text-black flex items-center justify-center hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity font-semibold text-sm md:text-base"
-        >
-          <svg
-            className="w-5 h-5 md:w-6 md:h-6"
-            fill="currentColor"
-            viewBox="0 0 24 24"
+          <button
+            onClick={sendMessage}
+            disabled={!message.trim()}
+            className="flex-shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 disabled:shadow-none font-semibold"
           >
-            <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.16109004 C3.34915502,0.9039926 2.40734225,1.01520249 1.77946707,1.4865022 C0.994623095,2.11681295 0.837654326,3.20727025 1.15159189,3.99275714 L3.03521743,10.4337501 C3.03521743,10.5908475 3.19218622,10.7479449 3.50612381,10.7479449 L16.6915026,11.5334318 C16.6915026,11.5334318 17.1624089,11.5334318 17.1624089,12.0046748 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z" />
-          </svg>
-        </button>
+            <svg
+              className="w-5 h-5 sm:w-6 sm:h-6"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path d="M16.6915026,12.4744748 L3.50612381,13.2599618 C3.19218622,13.2599618 3.03521743,13.4170592 3.03521743,13.5741566 L1.15159189,20.0151496 C0.8376543,20.8006365 0.99,21.89 1.77946707,22.52 C2.41,22.99 3.50612381,23.1 4.13399899,22.8429026 L21.714504,14.0454487 C22.6563168,13.5741566 23.1272231,12.6315722 22.9702544,11.6889879 L4.13399899,1.16109004 C3.34915502,0.9039926 2.40734225,1.01520249 1.77946707,1.4865022 C0.994623095,2.11681295 0.837654326,3.20727025 1.15159189,3.99275714 L3.03521743,10.4337501 C3.03521743,10.5908475 3.19218622,10.7479449 3.50612381,10.7479449 L16.6915026,11.5334318 C16.6915026,11.5334318 17.1624089,11.5334318 17.1624089,12.0046748 C17.1624089,12.4744748 16.6915026,12.4744748 16.6915026,12.4744748 Z" />
+            </svg>
+          </button>
+        </div>
       </div>
+
+      <style>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-thumb-slate-700::-webkit-scrollbar-thumb {
+          background-color: rgb(51, 65, 85);
+          border-radius: 3px;
+        }
+        /* Mobile keyboard support */
+        @supports (padding: max(0px)) {
+          .relative.z-20.px-3 {
+            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+          }
+        }
+      `}</style>
     </div>
   );
 }
