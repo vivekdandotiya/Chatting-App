@@ -53,14 +53,8 @@ function Login() {
           <div className="relative p-6 sm:p-8 md:p-10 rounded-xl bg-[#121212] border border-[#27272a] shadow-2xl">
             {/* HEADER */}
             <div className="mb-8 sm:mb-10 flex flex-col items-center">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg flex items-center justify-center mb-4">
-                <svg
-                  className="w-6 h-6 sm:w-8 sm:h-8 text-black"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-                </svg>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
                 Welcome Back
@@ -203,14 +197,8 @@ function Login() {
       <div className="w-full max-w-sm mx-auto flex flex-col">
         {/* HEADER */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center mb-5 shadow-[0_4px_20px_rgba(255,255,255,0.15)]">
-            <svg
-              className="w-6 h-6 text-black"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
-            </svg>
+          <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center mb-5 shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden">
+            <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-[28px] font-bold text-white tracking-tight leading-none">
             Welcome Back

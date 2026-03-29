@@ -93,14 +93,8 @@ function Signup() {
           <div className="relative p-6 sm:p-8 md:p-10 rounded-xl bg-[#121212] border border-[#27272a] shadow-2xl">
             {/* HEADER */}
             <div className="mb-8 sm:mb-10 flex flex-col items-center">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg flex items-center justify-center mb-4">
-                <svg
-                  className="w-6 h-6 sm:w-8 sm:h-8 text-black"
-                  fill="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-                </svg>
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg flex items-center justify-center mb-4 overflow-hidden">
+                <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
                 Join Us
@@ -301,14 +295,8 @@ function Signup() {
       <div className="w-full max-w-sm mx-auto flex flex-col pb-6">
         {/* HEADER */}
         <div className="mb-8 flex flex-col items-center">
-          <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center mb-5 shadow-[0_4px_20px_rgba(255,255,255,0.15)]">
-            <svg
-              className="w-6 h-6 text-black"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" />
-            </svg>
+          <div className="w-12 h-12 bg-white rounded-[1rem] flex items-center justify-center mb-5 shadow-[0_4px_20px_rgba(255,255,255,0.15)] overflow-hidden">
+            <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-[28px] font-bold text-white tracking-tight leading-none">
             Join Us
