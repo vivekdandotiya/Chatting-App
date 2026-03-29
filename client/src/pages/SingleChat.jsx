@@ -49,15 +49,25 @@ function SingleChat() {
           `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
         );
 
-        setMessages(res.data || []);
-        if (res.data.length > 0) {
-          const firstMsg = res.data[0];
-          setRecipientName(
-            firstMsg.sender === user._id ? firstMsg.senderName : firstMsg.senderName
-          );
+        const fetchedMessages = res.data || [];
+        setMessages(fetchedMessages);
+
+        // ✅ Extract recipient name from first message
+        if (fetchedMessages.length > 0) {
+          const firstMsg = fetchedMessages[0];
+          // If the sender is me, the recipient name is the sender of that message
+          // If the sender is not me, get the senderName from that message
+          if (firstMsg.sender === user._id) {
+            // If I sent the first message, the recipient is in the senderName of responses
+            const responseMsg = fetchedMessages.find((m) => m.sender !== user._id);
+            setRecipientName(responseMsg?.senderName || firstMsg.receiver);
+          } else {
+            // If I didn't send the first message, it's from the other person
+            setRecipientName(firstMsg.senderName);
+          }
         }
       } catch (err) {
-        console.log(err);
+        console.log("Error fetching messages:", err);
       } finally {
         setIsLoading(false);
       }
