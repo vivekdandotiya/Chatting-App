@@ -215,51 +215,6 @@ function SingleChat() {
     }
   };
 
-  // 🎤 SEND VOICE MESSAGE
-  const sendVoiceMessage = async (blob) => {
-    const tempId = Date.now();
-    try {
-      const formData = new FormData();
-      formData.append("voice", blob, "voice.webm");
-
-      // Optimistic UI
-      const optimisticMsg = {
-        _id: tempId,
-        sender: user._id,
-        receiver: id,
-        senderName: user.name,
-        messageType: "voice",
-        voiceUrl: URL.createObjectURL(blob), // Local preview
-        status: "sending...",
-        createdAt: new Date(),
-      };
-      setMessages((prev) => [...prev, optimisticMsg]);
-
-      // Upload to server
-      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/upload/voice`, formData);
-      const voiceUrl = res.data.url;
-
-      // Send via socket
-      socket.emit("sendMessage", {
-        ...optimisticMsg,
-        voiceUrl,
-        status: "sent",
-      });
-    } catch (err) {
-      console.error("Error sending voice message:", err);
-      alert("Failed to send voice message. Please check server logs.");
-      // Remove failed optimistic message
-      setMessages((prev) => prev.filter(m => m._id !== tempId));
-    }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
   const addReaction = (messageId, emoji) => {
     if (!messageId || !user?._id) return;
     
@@ -287,6 +242,54 @@ function SingleChat() {
     
     setHoveredMessageId(null);
     setShowPickerFor(null);
+  };
+
+  // 🎤 SEND VOICE MESSAGE
+  const sendVoiceMessage = async (blob) => {
+    const tempId = Date.now();
+    try {
+      const formData = new FormData();
+      formData.append("voice", blob, "voice.webm");
+
+      // Optimistic UI
+      const optimisticMsg = {
+        _id: tempId,
+        sender: user._id,
+        receiver: id,
+        senderName: user.name,
+        messageType: "voice",
+        voiceUrl: URL.createObjectURL(blob), // Local preview
+        status: "sending...",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+
+      // Upload to server
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/upload/voice`, formData);
+      
+      if (!res.data.url) throw new Error("No URL returned from server");
+
+      // Send via socket
+      socket.emit("sendMessage", {
+        ...optimisticMsg,
+        voiceUrl: res.data.url,
+        status: "sent",
+      });
+    } catch (err) {
+      console.error("Voice upload error:", err);
+      // Detailed alert
+      const errorMsg = err.response?.data?.error || err.message || "Unknown error";
+      alert(`Voice Error: ${errorMsg}. Make sure Cloudinary is configured on Render!`);
+      // Remove failed optimistic message
+      setMessages((prev) => prev.filter(m => m._id !== tempId));
+    }
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      sendMessage();
+    }
   };
 
   if (!user || !user._id) {
