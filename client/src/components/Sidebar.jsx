@@ -24,7 +24,7 @@ function Sidebar({ users, unread, setUnread }) {
   };
 
   return (
-    <div className="w-screen h-screen max-w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col overflow-hidden relative">
+    <div className="w-full h-[100dvh] max-w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex flex-col overflow-hidden relative">
       {/* ANIMATED BACKGROUND ELEMENTS */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5 animate-blob"></div>
@@ -135,7 +135,7 @@ function Sidebar({ users, unread, setUnread }) {
                         {/* AVATAR */}
                         <div className="relative flex-shrink-0">
                           <div
-                            className={`w-11 h-11 md:w-13 md:h-13 rounded-full bg-gradient-to-br ${getAvatarColor(
+                            className={`w-11 h-11 md:w-14 md:h-14 rounded-full bg-gradient-to-br ${getAvatarColor(
                               idx
                             )} flex items-center justify-center shadow-lg group-hover:shadow-xl transition-all duration-300 ${
                               hoveredId === u._id ? "scale-110" : "scale-100"

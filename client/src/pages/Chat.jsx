@@ -70,7 +70,7 @@ function Chat() {
   }
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-[100dvh] w-full max-w-full overflow-hidden">
       <Sidebar
         users={users}
         unread={unread}

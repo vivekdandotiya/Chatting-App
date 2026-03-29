@@ -93,7 +93,7 @@ function Signup() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
+    <div className="min-h-[100dvh] w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       {/* ANIMATED BACKGROUND BLOBS */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>

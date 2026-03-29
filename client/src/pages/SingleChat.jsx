@@ -144,7 +144,7 @@ function SingleChat() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0b141a] text-white">
+    <div className="flex flex-col h-[100dvh] max-w-full bg-[#0b141a] text-white overflow-hidden">
       {/* HEADER */}
       <div className="bg-[#202c33] p-4 flex gap-4 items-center">
         <button 
@@ -170,9 +170,9 @@ function SingleChat() {
               return (
                 <div
                   key={i}
-                  className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                  className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0`}
                 >
-                  <div className={`${isMe ? "bg-[#056162]" : "bg-[#262e35]"} px-4 py-2 rounded-lg max-w-xs`}>
+                  <div className={`${isMe ? "bg-[#056162]" : "bg-[#262e35]"} px-3 py-2 sm:px-4 sm:py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm`}>
                     {!isMe && (
                       <p className="text-xs text-gray-300 mb-1">
                         {msg.senderName}
@@ -219,7 +219,7 @@ function SingleChat() {
         <button
           onClick={sendMessage}
           disabled={!message.trim()}
-          className="bg-[#056162] hover:bg-[#067273] px-6 rounded-full text-white font-semibold disabled:opacity-50 transition"
+          className="bg-[#056162] hover:bg-[#067273] px-4 md:px-6 py-2 rounded-full text-white font-semibold flex-shrink-0 disabled:opacity-50 transition"
         >
           Send
         </button>
