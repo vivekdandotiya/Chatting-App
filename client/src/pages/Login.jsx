@@ -11,7 +11,7 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  const appMode = localStorage.getItem("appMode") || "phone";
+  const appMode = sessionStorage.getItem("appMode") || "phone";
   const isWindows = appMode === "windows";
 
   const handleLogin = async (e) => {

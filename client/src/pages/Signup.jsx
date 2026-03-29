@@ -16,7 +16,7 @@ function Signup() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  const appMode = localStorage.getItem("appMode") || "phone";
+  const appMode = sessionStorage.getItem("appMode") || "phone";
   const isWindows = appMode === "windows";
 
   const checkPasswordStrength = (pass) => {

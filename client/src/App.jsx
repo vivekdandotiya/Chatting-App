@@ -9,10 +9,10 @@ import PhoneWrapper from "./components/PhoneWrapper";
 import ExperienceGateway from "./components/ExperienceGateway";
 
 function App() {
-  const [appMode, setAppMode] = useState(localStorage.getItem('appMode'));
+  const [appMode, setAppMode] = useState(sessionStorage.getItem('appMode'));
 
   const handleSetMode = (mode) => {
-    localStorage.setItem('appMode', mode);
+    sessionStorage.setItem('appMode', mode);
     setAppMode(mode);
   };
 
