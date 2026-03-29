@@ -18,6 +18,10 @@ function SingleChat() {
   const [isAllowed, setIsAllowed] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [targetName, setTargetName] = useState("Chat");
+  const [hoveredMessageId, setHoveredMessageId] = useState(null);
+  const [showPickerFor, setShowPickerFor] = useState(null); // For mobile tap toggle
+  
+  const emojis = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
   const bottomRef = useRef();
 
@@ -94,7 +98,9 @@ function SingleChat() {
     const handleMessageDelivered = (msg) => {
       setMessages((prev) =>
         prev.map((m) =>
-          m._id === msg._id ? { ...m, status: "delivered" } : m
+          (m._id === msg._id || m.content === msg.content && m.sender === msg.sender && typeof m._id === 'number') 
+            ? { ...m, _id: msg._id, status: "delivered" } 
+            : m
         )
       );
     };
@@ -107,14 +113,22 @@ function SingleChat() {
       );
     };
 
+    const handleReceiveReaction = ({ messageId, reactions }) => {
+      setMessages((prev) =>
+        prev.map((m) => (m._id === messageId ? { ...m, reactions } : m))
+      );
+    };
+
     socket.on("receiveMessage", handleReceiveMessage);
     socket.on("messageDelivered", handleMessageDelivered);
     socket.on("messageRead", handleMessageRead);
+    socket.on("receiveReaction", handleReceiveReaction);
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
       socket.off("messageDelivered", handleMessageDelivered);
       socket.off("messageRead", handleMessageRead);
+      socket.off("receiveReaction", handleReceiveReaction);
     };
   }, [isAllowed]);
 
@@ -151,6 +165,18 @@ function SingleChat() {
       e.preventDefault();
       sendMessage();
     }
+  };
+
+  const addReaction = (messageId, emoji) => {
+    if (typeof messageId === 'number') return; // Don't allow reactions on temp IDs
+    
+    socket.emit("sendReaction", {
+      messageId,
+      userId: user._id,
+      emoji,
+    });
+    setHoveredMessageId(null);
+    setShowPickerFor(null);
   };
 
   if (!user || !user._id) {
@@ -220,12 +246,37 @@ function SingleChat() {
                   return (
                     <div
                       key={i}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0`}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group`}
+                      onMouseEnter={() => setHoveredMessageId(msg._id)}
+                      onMouseLeave={() => setHoveredMessageId(null)}
                     >
-                      <div className={`
-                        ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
-                        px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
-                      `}>
+                      {/* REACTION PICKER */}
+                      {(hoveredMessageId === msg._id || showPickerFor === msg._id) && typeof msg._id !== 'number' && (
+                        <div className={`
+                          absolute -top-10 z-10 flex gap-1.5 bg-[#18181b] border border-[#27272a] 
+                          p-1.5 rounded-full shadow-2xl transition-all duration-200
+                          ${isMe ? 'right-0' : 'left-0'}
+                        `}>
+                          {emojis.map((emoji) => (
+                            <button
+                              key={emoji}
+                              onClick={() => addReaction(msg._id, emoji)}
+                              className="hover:scale-125 transition-transform p-1 rounded-full hover:bg-[#27272a]"
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div 
+                        onClick={() => setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
+                        className={`
+                          cursor-pointer transition-all relative
+                          ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
+                          px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
+                        `}
+                      >
                         {!isMe && (
                           <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
                             {msg.senderName}
@@ -250,6 +301,26 @@ function SingleChat() {
                             </>
                           )}
                         </div>
+
+                        {/* DISPLAY REACTIONS */}
+                        {msg.reactions && msg.reactions.length > 0 && (
+                          <div className={`
+                            absolute -bottom-2 flex -space-x-1 items-center bg-[#18181b] border border-[#27272a] 
+                            px-1.5 py-0.5 rounded-full shadow-lg text-[12px]
+                            ${isMe ? 'right-2' : 'left-2'}
+                          `}>
+                            {msg.reactions.map((r, idx) => (
+                              <span key={idx} title={`Reacted by ${r.user === user._id ? 'You' : 'Others'}`}>
+                                {r.emoji}
+                              </span>
+                            ))}
+                            {msg.reactions.length > 1 && (
+                              <span className="ml-1 text-[10px] text-gray-400 font-bold">
+                                {msg.reactions.length}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </div>
                   );

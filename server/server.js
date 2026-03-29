@@ -177,6 +177,44 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 🔥 SEND REACTION
+  socket.on("sendReaction", async ({ messageId, userId, emoji }) => {
+    try {
+      const msg = await Message.findById(messageId);
+      if (!msg) return;
+
+      if (!msg.reactions) msg.reactions = [];
+
+      const existingIndex = msg.reactions.findIndex((r) => r.user === userId);
+
+      if (existingIndex > -1) {
+        if (msg.reactions[existingIndex].emoji === emoji) {
+          // Toggle off if same emoji
+          msg.reactions.splice(existingIndex, 1);
+        } else {
+          // Change emoji
+          msg.reactions[existingIndex].emoji = emoji;
+        }
+      } else {
+        // Add new reaction
+        msg.reactions.push({ user: userId, emoji });
+      }
+
+      await msg.save();
+
+      // Notify both participants
+      const receiverSocket = users[msg.receiver];
+      const senderSocket = users[msg.sender];
+
+      const updateData = { messageId, reactions: msg.reactions };
+
+      if (receiverSocket) io.to(receiverSocket).emit("receiveReaction", updateData);
+      if (senderSocket) io.to(senderSocket).emit("receiveReaction", updateData);
+    } catch (err) {
+      console.error("Error handling reaction:", err);
+    }
+  });
+
   // 🔥 MARK AS READ
   socket.on("markAsRead", async ({ sender, receiver }) => {
     await Message.updateMany(
