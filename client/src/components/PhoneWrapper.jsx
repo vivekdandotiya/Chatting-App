@@ -50,7 +50,7 @@ function PhoneWrapper({ children }) {
   return (
     <div className="min-h-[100dvh] w-full bg-black flex items-center justify-center relative overflow-hidden font-sans">
       {/* PHONE DEVICE */}
-      <div className="relative w-[380px] h-[820px] bg-black rounded-[3.5rem] border-[12px] border-[#1f1f1f] shadow-[0_0_50px_rgba(255,255,255,0.03),inset_0_0_10px_rgba(0,0,0,1)] ring-1 ring-white/10 flex flex-col shrink-0">
+      <div className="relative w-[420px] h-[92dvh] max-h-[850px] bg-black rounded-[3.5rem] border-[12px] border-[#1f1f1f] shadow-[0_0_50px_rgba(255,255,255,0.03),inset_0_0_10px_rgba(0,0,0,1)] ring-1 ring-white/10 flex flex-col shrink-0">
         
         {/* HARDWARE BUTTONS */}
         {/* Silence switch */}
@@ -95,9 +95,9 @@ function PhoneWrapper({ children }) {
           )}
 
           {screenState === "lock" && (
-            <div className="w-full h-full bg-[#0d0d0d] flex flex-col items-center justify-between py-16 px-6 text-white relative select-none">
+            <div className="w-full h-full bg-[#0d0d0d] flex flex-col items-center justify-between py-8 sm:py-16 px-6 text-white relative select-none overflow-y-auto scrollbar-hide">
               
-              <div className="flex flex-col items-center mt-6 animate-fadeIn">
+              <div className="flex flex-col items-center mt-4 sm:mt-6 animate-fadeIn shrink-0">
                 <svg className="w-5 h-5 mb-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 17a2 2 0 100-4 2 2 0 000 4zm6-9v-2c0-3.31-2.69-6-6-6S6 2.69 6 6v2c-2.21 0-4 1.79-4 4v8c0 2.21 1.79 4 4 4h12c2.21 0 4-1.79 4-4v-8c0-2.21-1.79-4-4-4zm-2 0H8v-2c0-2.21 1.79-4 4-4s4 1.79 4 4v2z"/></svg>
                 <div className="text-[5rem] font-light tracking-tighter mt-0 leading-none" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
                   {time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
@@ -107,11 +107,11 @@ function PhoneWrapper({ children }) {
                 </div>
               </div>
 
-              <div className="flex flex-col items-center w-full max-w-[280px] mb-8 z-10 animate-slideUp">
-                <h3 className="text-white mb-6 font-medium tracking-wide">Enter Passcode</h3>
+              <div className="flex flex-col items-center w-full max-w-[280px] mb-6 sm:mb-8 z-10 animate-slideUp shrink-0 mt-8">
+                <h3 className="text-white mb-4 sm:mb-6 font-medium tracking-wide">Enter Passcode</h3>
                 
                 {/* Dots */}
-                <div className={`flex gap-5 mb-14 ${error ? "animate-wiggle" : ""}`}>
+                <div className={`flex gap-5 mb-8 sm:mb-14 ${error ? "animate-wiggle" : ""}`}>
                   {[0, 1, 2, 3].map((i) => (
                     <div 
                       key={i} 
@@ -165,10 +165,10 @@ function PhoneWrapper({ children }) {
               </div>
 
               {/* Fake torch/camera icons at bottom */}
-              <div className="absolute bottom-10 left-8 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
+              <div className="hidden sm:flex absolute bottom-8 left-8 w-12 h-12 rounded-full bg-white/10 items-center justify-center backdrop-blur-md">
                  <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-12h2v6h-2zM11 16h2v2h-2z"/></svg>
               </div>
-              <div className="absolute bottom-10 right-8 w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-md">
+              <div className="hidden sm:flex absolute bottom-8 right-8 w-12 h-12 rounded-full bg-white/10 items-center justify-center backdrop-blur-md">
                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
               </div>
 
