@@ -7,7 +7,7 @@ const socket = io(import.meta.env.VITE_BACKEND_URL, {
   transports: ["websocket"],
 });
 
-function Sidebar({ users, unread, setUnread, onlineUsers }) {
+function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers }) {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("chats");
@@ -38,9 +38,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers }) {
         receiver: receiverId
       });
       socket.emit("sendInvite", { sender: currentUser._id, receiver: receiverId });
-      // In a real app we'd trigger a parent re-fetch here, but the socket emit will bounce back or we can manually update via window location for now. 
-      // Emitting an event back to ourselves can trigger refetch.
-      window.location.reload(); 
+      if (refreshUsers) refreshUsers();
     } catch (err) {
       console.error(err);
     } finally {
@@ -59,7 +57,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers }) {
       if (action === "accept") {
         socket.emit("acceptInvite", { sender: senderId, receiver: currentUser._id });
       }
-      window.location.reload();
+      if (refreshUsers) refreshUsers();
     } catch (err) {
       console.error(err);
     } finally {

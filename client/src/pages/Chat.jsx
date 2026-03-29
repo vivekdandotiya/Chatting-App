@@ -15,33 +15,27 @@ function Chat() {
 
   const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
-  // 🔥 FETCH USERS
+  const refreshUsers = async () => {
+    if (!currentUser?._id) return;
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/users?userId=${currentUser._id}`
+      );
+      const filtered = res.data.filter((u) => u._id !== currentUser._id);
+      setUsers(filtered);
+    } catch (err) {
+      console.log("Users error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 🔥 FETCH USERS ON LOAD
   useEffect(() => {
-    if (!currentUser || !currentUser._id) return;
-
-    const fetchUsers = async () => {
-      try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/users?userId=${currentUser._id}`
-        );
-
-        const filtered = res.data.filter(
-          (u) => u._id !== currentUser._id
-        );
-
-        setUsers(filtered);
-      } catch (err) {
-        console.log("Users error:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-
-    const interval = setInterval(fetchUsers, 5000);
+    refreshUsers();
+    const interval = setInterval(refreshUsers, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [currentUser?._id]);
 
   // 🔥 SOCKET SETUP
   useEffect(() => {
@@ -63,12 +57,11 @@ function Chat() {
     });
 
     socket.on("receiveInvite", () => {
-      // Re-fetch users to get updated connection status
-      fetchUsers();
+      refreshUsers();
     });
 
     socket.on("inviteAccepted", () => {
-      fetchUsers();
+      refreshUsers();
     });
 
     return () => {
@@ -90,6 +83,7 @@ function Chat() {
         unread={unread}
         setUnread={setUnread} 
         onlineUsers={onlineUsers}
+        refreshUsers={refreshUsers}
       />
     </div>
   );
