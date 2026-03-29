@@ -15,6 +15,9 @@ function SingleChat() {
 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
+  const [isAllowed, setIsAllowed] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState(true);
+  const [targetName, setTargetName] = useState("Chat");
 
   const bottomRef = useRef();
 
@@ -23,55 +26,64 @@ function SingleChat() {
     Notification.requestPermission();
   }, []);
 
-  if (!user || !user._id) {
-    return <h2 className="text-white text-center mt-10">Loading...</h2>;
-  }
-
-  // 🔥 LOAD MESSAGES - FIXED
+  // 🔥 CHECK PERMISSION AND LOAD MESSAGES
   useEffect(() => {
     if (!user || !id) return;
 
-    const fetchMessages = async () => {
+    const checkAccessAndFetch = async () => {
       try {
-        console.log("Fetching messages from:", `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`);
-        
-        const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
+        setLoadingStatus(true);
+        // Check connection status
+        const usersRes = await axios.get(
+          `${import.meta.env.VITE_BACKEND_URL}/api/users?userId=${user._id}`
         );
+        const targetUser = usersRes.data.find((u) => u._id === id);
 
-        console.log("Messages received:", res.data);
-        
-        // Make sure we set the messages correctly
-        if (res.data && Array.isArray(res.data)) {
-          setMessages(res.data);
+        if (targetUser) {
+          setTargetName(targetUser.name);
+        }
+
+        if (targetUser && targetUser.connectionStatus === "accepted") {
+          setIsAllowed(true);
+          // Fetch messages
+          const res = await axios.get(
+            `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
+          );
+          if (res.data && Array.isArray(res.data)) {
+            setMessages(res.data);
+          } else {
+            setMessages([]);
+          }
+
+          // ✅ mark read
+          socket.emit("markAsRead", {
+            sender: id,
+            receiver: user._id,
+          });
         } else {
-          setMessages([]);
+          setIsAllowed(false);
         }
       } catch (err) {
-        console.error("Error fetching messages:", err);
-        setMessages([]);
+        console.error("Error fetching access or messages:", err);
+      } finally {
+        setLoadingStatus(false);
       }
     };
 
-    fetchMessages();
-
-    // ✅ mark read
-    socket.emit("markAsRead", {
-      sender: id,
-      receiver: user._id,
-    });
-  }, [id, user._id]);
+    checkAccessAndFetch();
+  }, [id, user?._id]);
 
   useEffect(() => {
     if (user?._id) {
       socket.emit("setup", user._id);
     }
-  }, [user._id]);
+  }, [user?._id]);
 
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
+    if (!isAllowed) return;
+
     const handleReceiveMessage = (msg) => {
-      console.log("New message received:", msg);
       setMessages((prev) => {
         const exists = prev.some((m) => m._id === msg._id);
         if (exists) return prev;
@@ -80,7 +92,6 @@ function SingleChat() {
     };
 
     const handleMessageDelivered = (msg) => {
-      console.log("Message delivered:", msg._id);
       setMessages((prev) =>
         prev.map((m) =>
           m._id === msg._id ? { ...m, status: "delivered" } : m
@@ -89,7 +100,6 @@ function SingleChat() {
     };
 
     const handleMessageRead = ({ receiver }) => {
-      console.log("Message read by:", receiver);
       setMessages((prev) =>
         prev.map((m) =>
           m.receiver === receiver ? { ...m, status: "read" } : m
@@ -106,7 +116,7 @@ function SingleChat() {
       socket.off("messageDelivered", handleMessageDelivered);
       socket.off("messageRead", handleMessageRead);
     };
-  }, []);
+  }, [isAllowed]);
 
   // 🔥 AUTO SCROLL
   useEffect(() => {
@@ -115,7 +125,7 @@ function SingleChat() {
 
   // 🔥 SEND MESSAGE
   const sendMessage = () => {
-    if (!message.trim()) return;
+    if (!message.trim() || !isAllowed) return;
 
     const newMsg = {
       _id: Date.now(),
@@ -143,87 +153,135 @@ function SingleChat() {
     }
   };
 
+  if (!user || !user._id) {
+    return <div className="h-[100dvh] bg-[#0a0a0a] flex justify-center items-center text-white"><h2 className="text-xl">Loading...</h2></div>;
+  }
+
   return (
-    <div className="flex flex-col h-[100dvh] max-w-full bg-[#0b141a] text-white overflow-hidden">
+    <div className="flex flex-col h-[100dvh] max-w-full bg-[#0a0a0a] text-white overflow-hidden">
       {/* HEADER */}
-      <div className="bg-[#202c33] p-4 flex gap-4 items-center">
+      <div className="bg-[#0a0a0a] px-4 py-3 flex gap-4 items-center border-b border-[#27272a] flex-shrink-0">
         <button 
           onClick={() => navigate("/chat")}
-          className="hover:opacity-80 transition"
+          className="hover:bg-[#18181b] p-2 rounded-full transition text-gray-400 hover:text-white"
         >
-          ←
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
         </button>
-        <h2 className="text-lg font-semibold">Chat</h2>
-      </div>
-
-      {/* CHAT */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
-        {messages.length === 0 ? (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-gray-500 text-center">No messages yet. Start a conversation!</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center">
+             <span className="font-bold">{targetName[0]?.toUpperCase()}</span>
           </div>
-        ) : (
-          <>
-            {messages.map((msg, i) => {
-              const isMe = msg.sender === user._id;
+          <div>
+             <h2 className="text-base font-semibold">{targetName}</h2>
+             <p className="text-xs text-gray-500">{isAllowed ? 'Connected' : 'Looking for connection'}</p>
+          </div>
+        </div>
+      </div>
 
-              return (
-                <div
-                  key={i}
-                  className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0`}
-                >
-                  <div className={`${isMe ? "bg-[#056162]" : "bg-[#262e35]"} px-3 py-2 sm:px-4 sm:py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm`}>
-                    {!isMe && (
-                      <p className="text-xs text-gray-300 mb-1">
-                        {msg.senderName}
-                      </p>
-                    )}
-
-                    <p className="text-sm break-words">{msg.content}</p>
-
-                    <div className="text-[10px] flex gap-1 justify-end mt-1 opacity-70">
-                      <span>
-                        {new Date(msg.createdAt).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-
-                      {isMe && (
-                        <>
-                          {msg.status === "sent" && "✓"}
-                          {msg.status === "delivered" && "✓✓"}
-                          {msg.status === "read" && "✓✓"}
-                        </>
-                      )}
-                    </div>
-                  </div>
+      {loadingStatus ? (
+        <div className="flex-1 flex items-center justify-center">
+           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : !isAllowed ? (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0a0a0a]">
+          <div className="w-16 h-16 bg-[#121212] border border-[#27272a] rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+             </svg>
+          </div>
+          <h2 className="text-xl font-bold mb-2 text-white">Chat Locked</h2>
+          <p className="text-gray-400 text-sm max-w-sm">
+             You need to be connected with this user to start chatting. Send an invite from the Discover tab, or ask them to accept yours.
+          </p>
+          <button 
+             onClick={() => navigate('/chat')}
+             className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded hover:bg-gray-200 transition"
+          >
+             Return to Messages
+          </button>
+        </div>
+      ) : (
+        <>
+          {/* CHAT */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-thin scrollbar-thumb-[#27272a]">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="bg-[#121212] border border-[#27272a] rounded-xl p-4 text-center max-w-xs text-sm text-gray-400 shadow-xl">
+                  Connection established. Send a message to start the conversation.
                 </div>
-              );
-            })}
-            <div ref={bottomRef} />
-          </>
-        )}
-      </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((msg, i) => {
+                  const isMe = msg.sender === user._id;
 
-      {/* INPUT */}
-      <div className="p-3 flex gap-2 bg-gray-800 border-t border-gray-700">
-        <input
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          onKeyDown={handleKeyPress}
-          placeholder="Type a message..."
-          className="flex-1 px-4 py-2 rounded-full bg-[#2a3942] text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#056162]"
-        />
+                  return (
+                    <div
+                      key={i}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0`}
+                    >
+                      <div className={`
+                        ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
+                        px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
+                      `}>
+                        {!isMe && (
+                          <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
+                            {msg.senderName}
+                          </p>
+                        )}
 
-        <button
-          onClick={sendMessage}
-          disabled={!message.trim()}
-          className="bg-[#056162] hover:bg-[#067273] px-4 md:px-6 py-2 rounded-full text-white font-semibold flex-shrink-0 disabled:opacity-50 transition"
-        >
-          Send
-        </button>
-      </div>
+                        <p className="break-words leading-relaxed">{msg.content}</p>
+
+                        <div className={`text-[10px] flex gap-1 justify-end mt-1.5 ${isMe ? 'opacity-50' : 'opacity-40'}`}>
+                          <span>
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </span>
+
+                          {isMe && (
+                            <>
+                              {msg.status === "sent" && "✓"}
+                              {msg.status === "delivered" && "✓✓"}
+                              {msg.status === "read" && <span className="text-blue-600">✓✓</span>}
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div ref={bottomRef} />
+              </>
+            )}
+          </div>
+
+          {/* INPUT */}
+          <div className="p-4 bg-[#0a0a0a] border-t border-[#27272a]">
+            <div className="flex gap-2 relative">
+              <input
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Type your message..."
+                className="flex-1 px-5 py-3 rounded-full bg-[#121212] border border-[#27272a] text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 transition"
+              />
+              <button
+                onClick={sendMessage}
+                disabled={!message.trim()}
+                className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 disabled:opacity-30 disabled:hover:bg-white transition"
+              >
+                <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

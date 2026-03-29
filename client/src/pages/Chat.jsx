@@ -21,7 +21,7 @@ function Chat() {
     const fetchUsers = async () => {
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_BACKEND_URL}/api/users`
+          `${import.meta.env.VITE_BACKEND_URL}/api/users?userId=${currentUser._id}`
         );
 
         const filtered = res.data.filter(
@@ -59,9 +59,20 @@ function Chat() {
       }
     });
 
+    socket.on("receiveInvite", () => {
+      // Re-fetch users to get updated connection status
+      fetchUsers();
+    });
+
+    socket.on("inviteAccepted", () => {
+      fetchUsers();
+    });
+
     return () => {
       socket.off("onlineUsers");
       socket.off("receiveMessage");
+      socket.off("receiveInvite");
+      socket.off("inviteAccepted");
     };
   }, []);
 

@@ -7,6 +7,7 @@ const mongoose = require("mongoose");
 
 const Message = require("./models/Message");
 const User = require("./models/User");
+const Connection = require("./models/Connection");
 
 const app = express();
 app.use(express.json());
@@ -31,8 +32,79 @@ app.use("/api/auth", authRoutes);
 
 // ✅ GET USERS
 app.get("/api/users", async (req, res) => {
-  const users = await User.find().select("-password");
-  res.json(users);
+  const { userId } = req.query;
+
+  try {
+    const users = await User.find().select("-password");
+    
+    if (!userId) {
+      return res.json(
+        users.map((u) => ({ ...u.toObject(), connectionStatus: "none" }))
+      );
+    }
+
+    const connections = await Connection.find({
+      $or: [{ sender: userId }, { receiver: userId }],
+    });
+
+    const usersWithStatus = users.map((u) => {
+      const userObj = u.toObject();
+      if (userObj._id.toString() === userId) {
+        return userObj;
+      }
+
+      const connection = connections.find(
+        (c) =>
+          (c.sender.toString() === userId && c.receiver.toString() === userObj._id.toString()) ||
+          (c.receiver.toString() === userId && c.sender.toString() === userObj._id.toString())
+      );
+
+      let connectionStatus = "none";
+      if (connection) {
+        if (connection.status === "accepted") {
+          connectionStatus = "accepted";
+        } else if (connection.status === "pending") {
+          connectionStatus =
+            connection.sender.toString() === userId ? "pending_sent" : "pending_received";
+        }
+      }
+
+      userObj.connectionStatus = connectionStatus;
+      return userObj;
+    });
+
+    res.json(usersWithStatus);
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ CONNECTIONS
+app.post("/api/connections/request", async (req, res) => {
+  const { sender, receiver } = req.body;
+  if (!sender || !receiver) return res.status(400).json({ error: "Fields required" });
+  
+  const existing = await Connection.findOne({
+    $or: [{ sender, receiver }, { sender: receiver, receiver: sender }]
+  });
+  if (existing) return res.status(400).json({ error: "Connection exists" });
+
+  const connection = await Connection.create({ sender, receiver, status: "pending" });
+  res.json(connection);
+});
+
+app.post("/api/connections/respond", async (req, res) => {
+  const { sender, receiver, action } = req.body; 
+  if (!sender || !receiver || !action) return res.status(400).json({ error: "Fields required" });
+
+  const connection = await Connection.findOne({ sender, receiver: receiver, status: "pending" });
+  if (!connection) return res.status(404).json({ error: "Request not found" });
+
+  if (action === "accept") connection.status = "accepted";
+  else if (action === "reject") connection.status = "rejected";
+  await connection.save();
+
+  res.json(connection);
 });
 
 // ✅ GET MESSAGES
@@ -103,6 +175,21 @@ io.on("connection", (socket) => {
 
     if (senderSocket) {
       io.to(senderSocket).emit("messageRead", { receiver });
+    }
+  });
+
+  // 🔥 CONNECTIONS INVITES
+  socket.on("sendInvite", (data) => {
+    const receiverSocket = users[data.receiver];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("receiveInvite", data);
+    }
+  });
+
+  socket.on("acceptInvite", (data) => {
+    const senderSocket = users[data.sender];
+    if (senderSocket) {
+      io.to(senderSocket).emit("inviteAccepted", data);
     }
   });
 
