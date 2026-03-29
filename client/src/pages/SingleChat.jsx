@@ -29,45 +29,55 @@ function SingleChat() {
 
   if (!user || !user._id) {
     return (
-      <div className="w-full h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center">
+      <div className="w-screen h-screen max-w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black flex items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-300">Loading...</p>
+          <p className="text-slate-300 text-sm">Loading...</p>
         </div>
       </div>
     );
   }
 
-  // 🔥 LOAD MESSAGES
+  // 🔥 LOAD MESSAGES - Fixed version
   useEffect(() => {
-    if (!user || !id) return;
+    if (!user || !user._id || !id) return;
 
     const fetchMessages = async () => {
       try {
         setIsLoading(true);
+        console.log("Fetching messages for:", user._id, "and", id);
+        
         const res = await axios.get(
           `${import.meta.env.VITE_BACKEND_URL}/api/messages/${user._id}/${id}`
         );
 
+        console.log("Messages received:", res.data);
+        
         const fetchedMessages = res.data || [];
+        
+        // Set all messages
         setMessages(fetchedMessages);
 
-        // ✅ Extract recipient name from first message
+        // Extract recipient name from messages
         if (fetchedMessages.length > 0) {
-          const firstMsg = fetchedMessages[0];
-          // If the sender is me, the recipient name is the sender of that message
-          // If the sender is not me, get the senderName from that message
-          if (firstMsg.sender === user._id) {
-            // If I sent the first message, the recipient is in the senderName of responses
-            const responseMsg = fetchedMessages.find((m) => m.sender !== user._id);
-            setRecipientName(responseMsg?.senderName || firstMsg.receiver);
+          // Find any message from the other person
+          const otherPersonMsg = fetchedMessages.find(
+            (m) => m.sender !== user._id
+          );
+          
+          if (otherPersonMsg) {
+            setRecipientName(otherPersonMsg.senderName);
           } else {
-            // If I didn't send the first message, it's from the other person
-            setRecipientName(firstMsg.senderName);
+            // All messages are from me, find the receiver name
+            const myMsg = fetchedMessages.find((m) => m.sender === user._id);
+            if (myMsg && myMsg.receiver) {
+              // Try to get name from message content or use generic name
+              setRecipientName("User");
+            }
           }
         }
       } catch (err) {
-        console.log("Error fetching messages:", err);
+        console.error("Error fetching messages:", err.message);
       } finally {
         setIsLoading(false);
       }
@@ -80,50 +90,61 @@ function SingleChat() {
       sender: id,
       receiver: user._id,
     });
-  }, [id, user]);
+  }, [id, user._id, user]);
 
   useEffect(() => {
     if (user?._id) {
       socket.emit("setup", user._id);
     }
-  }, [user]);
+  }, [user?._id]);
 
   // 🔥 RECEIVE MESSAGE
   useEffect(() => {
-    socket.on("receiveMessage", (msg) => {
+    const handleReceiveMessage = (msg) => {
+      console.log("Received message:", msg);
       setMessages((prev) => {
         const exists = prev.some((m) => m._id === msg._id);
         if (exists) return prev;
         return [...prev, msg];
       });
-    });
+    };
 
-    socket.on("messageDelivered", (msg) => {
+    const handleMessageDelivered = (msg) => {
       setMessages((prev) =>
         prev.map((m) =>
           m._id === msg._id ? { ...m, status: "delivered" } : m
         )
       );
-    });
+    };
 
-    socket.on("messageRead", ({ receiver }) => {
+    const handleMessageRead = ({ receiver }) => {
       setMessages((prev) =>
         prev.map((m) =>
           m.receiver === receiver ? { ...m, status: "read" } : m
         )
       );
-    });
+    };
+
+    socket.on("receiveMessage", handleReceiveMessage);
+    socket.on("messageDelivered", handleMessageDelivered);
+    socket.on("messageRead", handleMessageRead);
 
     return () => {
-      socket.off("receiveMessage");
-      socket.off("messageDelivered");
-      socket.off("messageRead");
+      socket.off("receiveMessage", handleReceiveMessage);
+      socket.off("messageDelivered", handleMessageDelivered);
+      socket.off("messageRead", handleMessageRead);
     };
   }, []);
 
   // 🔥 AUTO SCROLL
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    const scrollToBottom = () => {
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
+
+    // Delay slightly to allow DOM to update
+    const timer = setTimeout(scrollToBottom, 0);
+    return () => clearTimeout(timer);
   }, [messages]);
 
   // Handle viewport changes when keyboard appears
@@ -131,7 +152,7 @@ function SingleChat() {
     const handleResize = () => {
       setTimeout(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
+      }, 200);
     };
 
     window.addEventListener("resize", handleResize);
@@ -160,7 +181,7 @@ function SingleChat() {
     setTimeout(() => {
       inputRef.current?.focus();
       bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, 0);
+    }, 100);
   };
 
   const handleKeyPress = (e) => {
@@ -171,7 +192,7 @@ function SingleChat() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white overflow-hidden relative">
+    <div className="flex flex-col w-screen h-screen max-w-full bg-gradient-to-br from-slate-950 via-slate-900 to-black text-white overflow-hidden relative">
       {/* ANIMATED BACKGROUND */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-5"></div>
@@ -179,13 +200,13 @@ function SingleChat() {
       </div>
 
       {/* HEADER */}
-      <div className="relative z-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-700/50 px-4 py-3 sm:py-4 flex items-center gap-3 sticky top-0">
+      <div className="relative z-20 bg-slate-900/50 backdrop-blur-md border-b border-slate-700/50 px-3 md:px-4 py-2.5 md:py-3 flex items-center gap-2.5 md:gap-3 sticky top-0 flex-shrink-0">
         <button
           onClick={() => navigate("/chat")}
-          className="flex-shrink-0 w-10 h-10 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 flex items-center justify-center transition-all duration-200 hover:border-slate-600/50"
+          className="flex-shrink-0 w-9 h-9 md:w-10 md:h-10 rounded-lg bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 flex items-center justify-center transition-all duration-200 hover:border-slate-600/50 active:scale-95"
         >
           <svg
-            className="w-6 h-6 text-slate-200"
+            className="w-5 h-5 md:w-6 md:h-6 text-slate-200"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -200,14 +221,14 @@ function SingleChat() {
         </button>
 
         <div className="flex-1 min-w-0">
-          <h2 className="text-base sm:text-lg font-bold text-white truncate">
+          <h2 className="text-sm md:text-lg font-bold text-white truncate">
             {recipientName}
           </h2>
-          <p className="text-xs sm:text-sm text-slate-400">Active now</p>
+          <p className="text-xs md:text-sm text-slate-400">Active now</p>
         </div>
 
-        <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
-          <span className="text-white font-bold text-sm sm:text-base">
+        <div className="flex-shrink-0 w-9 h-9 md:w-11 md:h-11 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+          <span className="text-white font-bold text-xs md:text-base">
             {recipientName?.[0]?.toUpperCase() || "?"}
           </span>
         </div>
@@ -216,20 +237,20 @@ function SingleChat() {
       {/* MESSAGES CONTAINER */}
       <div
         ref={contentRef}
-        className="relative z-10 flex-1 overflow-y-auto px-3 sm:px-4 py-4 sm:py-6 space-y-3 sm:space-y-4 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
+        className="relative z-10 flex-1 overflow-y-auto px-3 md:px-4 py-3 md:py-4 space-y-2 md:space-y-3 scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-transparent"
       >
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full animate-spin mx-auto mb-3"></div>
-              <p className="text-slate-400 text-sm">Loading messages...</p>
+              <p className="text-slate-400 text-xs md:text-sm">Loading messages...</p>
             </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full">
-            <div className="w-16 h-16 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl flex items-center justify-center mb-4 border border-slate-700/50">
+            <div className="w-14 h-14 md:w-16 md:h-16 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl flex items-center justify-center mb-3 border border-slate-700/50">
               <svg
-                className="w-8 h-8 text-slate-400"
+                className="w-7 h-7 md:w-8 md:h-8 text-slate-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -242,8 +263,8 @@ function SingleChat() {
                 />
               </svg>
             </div>
-            <p className="text-slate-300 font-semibold text-base">Say hello! 👋</p>
-            <p className="text-slate-500 text-sm mt-2">Start a conversation</p>
+            <p className="text-slate-300 font-semibold text-sm md:text-base">Say hello! 👋</p>
+            <p className="text-slate-500 text-xs md:text-sm mt-1">Start a conversation</p>
           </div>
         ) : (
           <>
@@ -256,23 +277,23 @@ function SingleChat() {
                   className={`flex ${isMe ? "justify-end" : "justify-start"} animate-fadeIn`}
                 >
                   <div
-                    className={`group relative max-w-xs sm:max-w-sm px-4 py-2.5 sm:py-3 rounded-2xl transition-all duration-300 ${
+                    className={`group relative max-w-xs md:max-w-sm px-3 md:px-4 py-2 md:py-2.5 rounded-2xl transition-all duration-300 ${
                       isMe
                         ? "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-br-none shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30"
                         : "bg-slate-800/60 text-slate-100 rounded-bl-none border border-slate-700/50 backdrop-blur-sm hover:bg-slate-800/80"
                     }`}
                   >
                     {!isMe && (
-                      <p className="text-xs font-bold text-slate-400 mb-1">
+                      <p className="text-xs font-bold text-slate-400 mb-0.5">
                         {msg.senderName}
                       </p>
                     )}
 
-                    <p className="text-sm sm:text-base break-words leading-relaxed">
+                    <p className="text-xs md:text-sm break-words leading-relaxed">
                       {msg.content}
                     </p>
 
-                    <div className="flex items-center gap-1.5 justify-end mt-1.5">
+                    <div className="flex items-center gap-1 justify-end mt-1">
                       <span className="text-xs opacity-75">
                         {new Date(msg.createdAt).toLocaleTimeString([], {
                           hour: "2-digit",
@@ -299,7 +320,7 @@ function SingleChat() {
       </div>
 
       {/* INPUT AREA - FIXED AT BOTTOM WITH KEYBOARD SUPPORT */}
-      <div className="relative z-20 px-3 sm:px-4 py-3 sm:py-4 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur-md">
+      <div className="relative z-20 px-3 md:px-4 py-2.5 md:py-3 border-t border-slate-700/50 bg-slate-900/50 backdrop-blur-md flex-shrink-0">
         <div className="flex gap-2 items-end">
           <div className="flex-1 relative group">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-0 group-focus-within:opacity-20 transition duration-300"></div>
@@ -315,17 +336,17 @@ function SingleChat() {
               onKeyDown={handleKeyPress}
               placeholder="Type a message..."
               rows="1"
-              className="relative w-full px-4 py-3 sm:py-3.5 rounded-2xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:bg-slate-800 focus:border-blue-500/50 transition-all duration-300 resize-none max-h-24 text-sm sm:text-base"
+              className="relative w-full px-3 md:px-4 py-2.5 md:py-3 rounded-2xl bg-slate-800/50 border border-slate-700/50 text-white placeholder-slate-400 focus:outline-none focus:bg-slate-800 focus:border-blue-500/50 transition-all duration-300 resize-none max-h-24 text-xs md:text-sm"
             />
           </div>
 
           <button
             onClick={sendMessage}
             disabled={!message.trim()}
-            className="flex-shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 disabled:shadow-none font-semibold"
+            className="flex-shrink-0 w-10 h-10 md:w-11 md:h-11 rounded-full bg-gradient-to-r from-blue-600 to-purple-600 text-white flex items-center justify-center hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 disabled:shadow-none font-semibold active:scale-95"
           >
             <svg
-              className="w-5 h-5 sm:w-6 sm:h-6"
+              className="w-5 h-5 md:w-6 md:h-6"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
@@ -336,6 +357,19 @@ function SingleChat() {
       </div>
 
       <style>{`
+        html, body {
+          -webkit-text-size-adjust: 100%;
+          -moz-text-size-adjust: 100%;
+          -ms-text-size-adjust: 100%;
+          text-size-adjust: 100%;
+        }
+
+        * {
+          -webkit-user-select: text;
+          -moz-user-select: text;
+          user-select: text;
+        }
+
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -350,17 +384,11 @@ function SingleChat() {
           animation: fadeIn 0.3s ease-out;
         }
         .scrollbar-thin::-webkit-scrollbar {
-          width: 6px;
+          width: 4px;
         }
         .scrollbar-thumb-slate-700::-webkit-scrollbar-thumb {
           background-color: rgb(51, 65, 85);
           border-radius: 3px;
-        }
-        /* Mobile keyboard support */
-        @supports (padding: max(0px)) {
-          .relative.z-20.px-3 {
-            padding-bottom: max(1rem, env(safe-area-inset-bottom));
-          }
         }
       `}</style>
     </div>
