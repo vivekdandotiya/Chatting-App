@@ -21,6 +21,12 @@ function SingleChat() {
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [showPickerFor, setShowPickerFor] = useState(null); // For mobile tap toggle
   
+  // 🎤 VOICE RECORDING STATES
+  const [isRecording, setIsRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const timerRef = useRef(null);
+
   const emojis = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
   const bottomRef = useRef();
@@ -147,6 +153,7 @@ function SingleChat() {
       receiver: id,
       senderName: user.name,
       content: message,
+      messageType: "text",
       status: "sent",
       createdAt: new Date(),
     };
@@ -156,8 +163,90 @@ function SingleChat() {
 
     // ✅ backend ko bhejo
     socket.emit("sendMessage", newMsg);
-
     setMessage("");
+  };
+
+  // 🎤 START RECORDING
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks = [];
+
+      recorder.ondataavailable = (e) => chunks.push(e.data);
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        await sendVoiceMessage(blob);
+        stream.getTracks().forEach((track) => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      
+      setRecordingTime(0);
+      timerRef.current = setInterval(() => {
+        setRecordingTime((prev) => prev + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Error accessing microphone:", err);
+      alert("Could not access microphone");
+    }
+  };
+
+  // 🎤 STOP RECORDING
+  const stopRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+    }
+  };
+
+  // 🎤 CANCEL RECORDING
+  const cancelRecording = () => {
+    if (mediaRecorder) {
+      mediaRecorder.onstop = null; // Prevent sending
+      mediaRecorder.stop();
+      setIsRecording(false);
+      clearInterval(timerRef.current);
+      // Stop all tracks
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+    }
+  };
+
+  // 🎤 SEND VOICE MESSAGE
+  const sendVoiceMessage = async (blob) => {
+    try {
+      const formData = new FormData();
+      formData.append("voice", blob, "voice.webm");
+
+      // Optimistic UI
+      const tempId = Date.now();
+      const optimisticMsg = {
+        _id: tempId,
+        sender: user._id,
+        receiver: id,
+        senderName: user.name,
+        messageType: "voice",
+        voiceUrl: URL.createObjectURL(blob), // Local preview
+        status: "sent",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+
+      // Upload to server
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/upload/voice`, formData);
+      const voiceUrl = res.data.url;
+
+      // Send via socket
+      socket.emit("sendMessage", {
+        ...optimisticMsg,
+        voiceUrl,
+      });
+    } catch (err) {
+      console.error("Error sending voice message:", err);
+    }
   };
 
   const handleKeyPress = (e) => {
@@ -326,7 +415,30 @@ function SingleChat() {
                           </p>
                         )}
 
-                        <p className="break-words leading-relaxed">{msg.content}</p>
+                        {msg.messageType === "voice" ? (
+                          <div className="flex items-center gap-3 min-w-[200px] py-1">
+                            <button 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const audio = new Audio(msg.voiceUrl);
+                                audio.play();
+                              }}
+                              className={`w-10 h-10 rounded-full flex items-center justify-center transition shadow-sm ${isMe ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-100'}`}
+                            >
+                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z" />
+                              </svg>
+                            </button>
+                            <div className="flex-1 flex flex-col gap-1">
+                              <div className={`h-1 rounded-full overflow-hidden ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
+                                <div className={`h-full w-1/3 ${isMe ? 'bg-black/40' : 'bg-white/40'}`}></div>
+                              </div>
+                              <span className={`text-[10px] font-bold ${isMe ? 'text-black/50' : 'text-white/50'}`}>Voice Message</span>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="break-words leading-relaxed">{msg.content}</p>
+                        )}
 
                         <div className={`text-[10px] flex gap-1 justify-end mt-1.5 ${isMe ? 'opacity-50' : 'opacity-40'}`}>
                           <span>
@@ -376,24 +488,58 @@ function SingleChat() {
 
           {/* INPUT */}
           <div className="p-4 bg-[#0a0a0a] border-t border-[#27272a]">
-            <div className="flex gap-2 relative">
-              <input
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="Type your message..."
-                className="flex-1 px-5 py-3 rounded-full bg-[#121212] border border-[#27272a] text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 transition"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!message.trim()}
-                className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 disabled:opacity-30 disabled:hover:bg-white transition"
-              >
-                <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
-                   <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-                </svg>
-              </button>
-            </div>
+            {isRecording ? (
+              <div className="flex items-center gap-4 bg-[#121212] rounded-full px-6 py-3 border border-red-500/30 animate-pulse">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
+                  <span className="text-sm font-medium">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+                </div>
+                <button 
+                  onClick={cancelRecording}
+                  className="text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider"
+                >
+                  Cancel
+                </button>
+                <div className="w-px h-6 bg-gray-800"></div>
+                <button 
+                  onClick={stopRecording}
+                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                    <rect x="6" y="6" width="12" height="12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 relative">
+                <input
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="Type your message..."
+                  className="flex-1 px-5 py-3 rounded-full bg-[#121212] border border-[#27272a] text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 transition"
+                />
+                {!message.trim() ? (
+                  <button
+                    onClick={startRecording}
+                    className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 transition"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    onClick={sendMessage}
+                    className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 transition"
+                  >
+                    <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </>
       )}

@@ -28,7 +28,9 @@ mongoose
 
 // ✅ ROUTES
 const authRoutes = require("./routes/authRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
 app.use("/api/auth", authRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // ✅ GET USERS
 app.get("/api/users", async (req, res) => {
@@ -160,6 +162,8 @@ io.on("connection", (socket) => {
       sender: data.sender,
       receiver: data.receiver,
       content: data.content,
+      messageType: data.messageType || "text",
+      voiceUrl: data.voiceUrl || null,
       status: "sent",
     });
 

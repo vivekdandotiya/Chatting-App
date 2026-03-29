@@ -6,6 +6,12 @@ const messageSchema = new mongoose.Schema(
     senderName: String,
     receiver: String,
     content: String,
+    messageType: {
+      type: String,
+      enum: ["text", "voice"],
+      default: "text",
+    },
+    voiceUrl: String,
 
     status: {
       type: String,
