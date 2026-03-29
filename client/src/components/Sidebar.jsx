@@ -12,11 +12,13 @@ function Sidebar({ users, unread, setUnread }) {
   ) || [];
 
   return (
-    <div className="w-full max-w-2xl h-screen bg-white flex flex-col border-r border-gray-200">
+    <div className="w-full h-screen bg-white dark:bg-[#0f0f0f] flex flex-col border-r border-gray-200 dark:border-gray-800">
       {/* HEADER */}
-      <div className="px-6 pt-6 pb-4 border-b border-gray-100">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Messages</h1>
-        
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0f0f0f]">
+        <h1 className="text-3xl md:text-4xl font-bold text-black dark:text-white mb-3 md:mb-4">
+          Messages
+        </h1>
+
         {/* SEARCH BAR */}
         <div className="relative">
           <svg
@@ -37,39 +39,39 @@ function Sidebar({ users, unread, setUnread }) {
             placeholder="Search chats..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-transparent rounded-full text-sm text-gray-900 placeholder-gray-500 focus:outline-none focus:bg-white focus:border-gray-300 transition-all"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-100 dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-full text-sm text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:bg-white dark:focus:bg-gray-800 focus:border-gray-300 dark:focus:border-gray-700 transition-all"
           />
         </div>
       </div>
 
       {/* TABS */}
-      <div className="px-6 pt-4 pb-3 flex gap-4 border-b border-gray-100">
+      <div className="px-3 md:px-6 pt-3 md:pt-4 pb-2 md:pb-3 flex gap-2 md:gap-4 border-b border-gray-200 dark:border-gray-800 overflow-x-auto">
         <button
           onClick={() => setActiveTab("chats")}
-          className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+          className={`px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
             activeTab === "chats"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-black text-white dark:bg-white dark:text-black"
+              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900"
           }`}
         >
           All Chats
         </button>
         <button
           onClick={() => setActiveTab("favorites")}
-          className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+          className={`px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
             activeTab === "favorites"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-black text-white dark:bg-white dark:text-black"
+              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900"
           }`}
         >
           Favorites
         </button>
         <button
           onClick={() => setActiveTab("groups")}
-          className={`px-3 py-2 rounded-lg font-medium text-sm transition-all ${
+          className={`px-3 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all ${
             activeTab === "groups"
-              ? "bg-blue-100 text-blue-700"
-              : "text-gray-600 hover:bg-gray-100"
+              ? "bg-black text-white dark:bg-white dark:text-black"
+              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-900"
           }`}
         >
           Groups
@@ -77,14 +79,14 @@ function Sidebar({ users, unread, setUnread }) {
       </div>
 
       {/* MAIN CONTENT */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto bg-white dark:bg-[#0f0f0f]">
         {activeTab === "chats" && (
-          <div className="p-3">
+          <div className="p-2 md:p-3">
             {filteredUsers.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 px-5 text-center">
-                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mb-4">
+              <div className="flex flex-col items-center justify-center h-64 px-4 md:px-5 text-center">
+                <div className="w-16 md:w-20 h-16 md:h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
                   <svg
-                    className="w-10 h-10 text-blue-500"
+                    className="w-8 md:w-10 h-8 md:h-10 text-gray-600 dark:text-gray-400"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -97,8 +99,10 @@ function Sidebar({ users, unread, setUnread }) {
                     />
                   </svg>
                 </div>
-                <p className="text-gray-700 text-sm font-semibold">No chats found</p>
-                <p className="text-gray-500 text-xs mt-2">
+                <p className="text-gray-900 dark:text-gray-100 text-sm font-semibold">
+                  No chats found
+                </p>
+                <p className="text-gray-500 dark:text-gray-400 text-xs mt-2">
                   {searchQuery ? "Try a different search" : "Start a conversation"}
                 </p>
               </div>
@@ -106,7 +110,7 @@ function Sidebar({ users, unread, setUnread }) {
               <>
                 {/* RECENT SECTION */}
                 <div className="mb-6">
-                  <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide px-2 mb-3">
+                  <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-2 mb-3">
                     Recent
                   </h3>
                   {filteredUsers.slice(0, 3).map((u) => (
@@ -115,52 +119,51 @@ function Sidebar({ users, unread, setUnread }) {
                       onMouseEnter={() => setHoveredId(u._id)}
                       onMouseLeave={() => setHoveredId(null)}
                       onClick={() => {
-  navigate(`/chat/${u._id}`);
-
-  setUnread((prev) => ({
-    ...prev,
-    [u._id]: 0,
-  }));
-}}
-                      className="flex items-center gap-3 p-3 m-1 rounded-xl hover:bg-gray-100 cursor-pointer transition-all duration-200 active:bg-gray-200 group"
+                        navigate(`/chat/${u._id}`);
+                        setUnread((prev) => ({
+                          ...prev,
+                          [u._id]: 0,
+                        }));
+                      }}
+                      className="flex items-center gap-3 p-2 md:p-3 m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer transition-all duration-200 active:bg-gray-200 dark:active:bg-gray-800 group"
                     >
                       {/* AVATAR WITH 3D EFFECT */}
-                      <div className="relative w-14 h-14 flex-shrink-0">
+                      <div className="relative w-12 md:w-14 h-12 md:h-14 flex-shrink-0">
                         <div
-                          className={`w-full h-full rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center shadow-md transition-all duration-300 ${
+                          className={`w-full h-full rounded-full bg-gradient-to-br from-gray-800 to-black dark:from-gray-700 dark:to-gray-900 flex items-center justify-center shadow-md transition-all duration-300 ${
                             hoveredId === u._id
-                              ? "scale-110 shadow-xl"
+                              ? "scale-110 shadow-lg"
                               : "scale-100"
                           }`}
                         >
-                          <span className="text-white font-semibold text-xl">
+                          <span className="text-white font-semibold text-lg md:text-xl">
                             {u.name?.[0]?.toUpperCase()}
                           </span>
                         </div>
                         {hoveredId === u._id && (
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-300 to-transparent opacity-30 animate-pulse"></div>
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-gray-600 to-transparent opacity-20 animate-pulse"></div>
                         )}
-                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div>
+                        <div className="absolute bottom-0 right-0 w-3 md:w-4 h-3 md:h-4 bg-green-500 rounded-full border-2 border-white dark:border-black"></div>
                       </div>
 
                       {/* USER INFO */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-gray-900 font-semibold text-sm truncate group-hover:text-blue-600 transition-colors">
+                        <h3 className="text-gray-900 dark:text-white font-semibold text-sm md:text-base truncate group-hover:text-black dark:group-hover:text-gray-200 transition-colors">
                           {u.name}
                         </h3>
-                        <p className="text-gray-500 text-xs truncate">
+                        <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
                           Active now
                         </p>
                       </div>
 
                       {unread && unread[u._id] > 0 && (
-      <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-        {unread[u._id]}
-      </span>
-    )}
+                        <span className="bg-black dark:bg-white text-white dark:text-black text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0">
+                          {unread[u._id]}
+                        </span>
+                      )}
 
                       {/* 3D ANIMATED ELEMENT */}
-                      <div className="relative w-10 h-10 flex-shrink-0">
+                      <div className="relative w-8 md:w-10 h-8 md:h-10 flex-shrink-0 hidden md:flex items-center justify-center">
                         <div
                           className={`w-full h-full flex items-center justify-center transition-all duration-300 ${
                             hoveredId === u._id ? "scale-110" : "scale-100"
@@ -169,8 +172,8 @@ function Sidebar({ users, unread, setUnread }) {
                           <svg
                             className={`w-5 h-5 transition-all duration-300 ${
                               hoveredId === u._id
-                                ? "text-blue-600 translate-x-1"
-                                : "text-gray-300"
+                                ? "text-black dark:text-white translate-x-1"
+                                : "text-gray-300 dark:text-gray-600"
                             }`}
                             fill="none"
                             stroke="currentColor"
@@ -184,9 +187,6 @@ function Sidebar({ users, unread, setUnread }) {
                             />
                           </svg>
                         </div>
-                        {hoveredId === u._id && (
-                          <div className="absolute inset-0 rounded-full bg-blue-100 -z-10 scale-150"></div>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -195,7 +195,7 @@ function Sidebar({ users, unread, setUnread }) {
                 {/* ALL CHATS SECTION */}
                 {filteredUsers.length > 3 && (
                   <div>
-                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wide px-2 mb-3">
+                    <h3 className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wide px-2 mb-3">
                       All Chats
                     </h3>
                     {filteredUsers.slice(3).map((u) => (
@@ -204,36 +204,34 @@ function Sidebar({ users, unread, setUnread }) {
                         onMouseEnter={() => setHoveredId(u._id)}
                         onMouseLeave={() => setHoveredId(null)}
                         onClick={() => {
-  navigate(`/chat/${u._id}`);
-
-  setUnread((prev) => ({
-    ...prev,
-    [u._id]: 0,
-  }));
-}}
-                        className="flex items-center gap-3 p-3 m-1 rounded-xl hover:bg-gray-100 cursor-pointer transition-all duration-200"
+                          navigate(`/chat/${u._id}`);
+                          setUnread((prev) => ({
+                            ...prev,
+                            [u._id]: 0,
+                          }));
+                        }}
+                        className="flex items-center gap-3 p-2 md:p-3 m-1 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-900 cursor-pointer transition-all duration-200"
                       >
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                          <span className="text-white font-semibold text-lg">
+                        <div className="w-11 md:w-12 h-11 md:h-12 rounded-full bg-gradient-to-br from-gray-700 to-gray-900 dark:from-gray-600 dark:to-gray-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                          <span className="text-white font-semibold text-base md:text-lg">
                             {u.name?.[0]?.toUpperCase()}
                           </span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-gray-900 font-semibold text-sm truncate">
+                          <h3 className="text-gray-900 dark:text-white font-semibold text-sm md:text-base truncate">
                             {u.name}
                           </h3>
-                          <p className="text-gray-500 text-xs truncate">
+                          <p className="text-gray-500 dark:text-gray-400 text-xs truncate">
                             Offline
                           </p>
                         </div>
-                        {/* 🔥 UNREAD BADGE (ADD HERE ALSO) */}
-{unread && unread[u._id] > 0 && (
-  <span className="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-    {unread[u._id]}
-  </span>
-)}
+                        {unread && unread[u._id] > 0 && (
+                          <span className="bg-black dark:bg-white text-white dark:text-black text-xs px-2 py-1 rounded-full font-semibold flex-shrink-0">
+                            {unread[u._id]}
+                          </span>
+                        )}
                         <svg
-                          className="w-5 h-5 text-gray-300 flex-shrink-0"
+                          className="w-5 h-5 text-gray-300 dark:text-gray-600 flex-shrink-0 hidden md:block"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -255,63 +253,65 @@ function Sidebar({ users, unread, setUnread }) {
         )}
 
         {activeTab === "favorites" && (
-          <div className="flex flex-col items-center justify-center h-64 px-5 text-center p-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-yellow-100 to-orange-100 rounded-full flex items-center justify-center mb-4">
+          <div className="flex flex-col items-center justify-center h-64 px-4 md:px-5 text-center p-6">
+            <div className="w-16 md:w-20 h-16 md:h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
               <svg
-                className="w-10 h-10 text-yellow-500"
+                className="w-8 md:w-10 h-8 md:h-10 text-gray-600 dark:text-gray-400"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-semibold">No favorites yet</p>
-            <p className="text-gray-500 text-sm mt-2">Star conversations to add them here</p>
+            <p className="text-gray-900 dark:text-white font-semibold text-sm md:text-base">
+              No favorites yet
+            </p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-2">
+              Star conversations to add them here
+            </p>
           </div>
         )}
 
         {activeTab === "groups" && (
-          <div className="flex flex-col items-center justify-center h-64 px-5 text-center p-6">
-            <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-blue-100 rounded-full flex items-center justify-center mb-4">
+          <div className="flex flex-col items-center justify-center h-64 px-4 md:px-5 text-center p-6">
+            <div className="w-16 md:w-20 h-16 md:h-20 bg-gray-200 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
               <svg
-                className="w-10 h-10 text-green-500"
+                className="w-8 md:w-10 h-8 md:h-10 text-gray-600 dark:text-gray-400"
                 fill="currentColor"
                 viewBox="0 0 24 24"
               >
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
             </div>
-            <p className="text-gray-700 font-semibold">No groups yet</p>
-            <p className="text-gray-500 text-sm mt-2">Create or join group chats</p>
+            <p className="text-gray-900 dark:text-white font-semibold text-sm md:text-base">
+              No groups yet
+            </p>
+            <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm mt-2">
+              Create or join group chats
+            </p>
           </div>
         )}
       </div>
 
-      {/* ANIMATED 3D CARD - BOTTOM */}
-      <div className="px-6 py-5 border-t border-gray-100">
-        <div className="relative h-24 rounded-2xl overflow-hidden bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 shadow-lg">
-          {/* ANIMATED BACKGROUND */}
-          <div className="absolute inset-0">
-            <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/5 rounded-full -ml-16 -mb-16 animate-pulse animation-delay-2000"></div>
-          </div>
-
+      {/* STATS CARD - BOTTOM */}
+      <div className="px-3 md:px-6 py-3 md:py-5 border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0f0f0f]">
+        <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-gray-900 to-black dark:from-gray-800 dark:to-black shadow-lg p-4 md:p-5 mb-3">
           {/* CONTENT */}
-          <div className="relative h-full flex items-center justify-between px-5">
+          <div className="relative flex items-center justify-between">
             <div className="flex-1">
-              <p className="text-white text-xs font-semibold opacity-90">
+              <p className="text-white text-xs font-semibold opacity-80">
                 Active now
               </p>
-              <p className="text-white text-base font-bold">
+              <p className="text-white text-base md:text-lg font-bold">
                 {filteredUsers.length} people online
               </p>
             </div>
 
-            {/* 3D FLOATING ELEMENT */}
-            <div className="relative w-12 h-12 flex-shrink-0">
-              <div className="w-full h-full rounded-full bg-white/20 flex items-center justify-center animate-bounce">
+            {/* ICON */}
+            <div className="relative w-10 md:w-12 h-10 md:h-12 flex-shrink-0">
+              <div className="w-full h-full rounded-full bg-white/10 flex items-center justify-center animate-bounce">
                 <svg
-                  className="w-6 h-6 text-white"
+                  className="w-5 md:w-6 h-5 md:h-6 text-white"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                 >
@@ -322,21 +322,31 @@ function Sidebar({ users, unread, setUnread }) {
           </div>
         </div>
 
-        {/* STATS */}
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          <div className="p-3 bg-gray-50 rounded-lg text-center hover:bg-gray-100 transition-colors">
-            <p className="text-xs text-gray-600 font-medium">Total</p>
-            <p className="text-lg font-bold text-gray-900 mt-1">
+        {/* STATS GRID */}
+        <div className="grid grid-cols-3 gap-2">
+          <div className="p-2 md:p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
+            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+              Total
+            </p>
+            <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white mt-1">
               {filteredUsers.length}
             </p>
           </div>
-          <div className="p-3 bg-blue-50 rounded-lg text-center hover:bg-blue-100 transition-colors">
-            <p className="text-xs text-blue-600 font-medium">Online</p>
-            <p className="text-lg font-bold text-blue-700 mt-1">{Math.floor(filteredUsers.length * 0.7)}</p>
+          <div className="p-2 md:p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
+            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+              Online
+            </p>
+            <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white mt-1">
+              {Math.floor(filteredUsers.length * 0.7)}
+            </p>
           </div>
-          <div className="p-3 bg-purple-50 rounded-lg text-center hover:bg-purple-100 transition-colors">
-            <p className="text-xs text-purple-600 font-medium">Offline</p>
-            <p className="text-lg font-bold text-purple-700 mt-1">{Math.ceil(filteredUsers.length * 0.3)}</p>
+          <div className="p-2 md:p-3 bg-gray-100 dark:bg-gray-900 rounded-lg text-center hover:bg-gray-200 dark:hover:bg-gray-800 transition-colors">
+            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
+              Offline
+            </p>
+            <p className="text-base md:text-lg font-bold text-gray-900 dark:text-white mt-1">
+              {Math.ceil(filteredUsers.length * 0.3)}
+            </p>
           </div>
         </div>
       </div>
