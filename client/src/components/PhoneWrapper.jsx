@@ -14,14 +14,13 @@ function PhoneWrapper({ children }) {
       setIsMobile(mobileCheck);
       
       if (!mobileCheck) {
-        // Calculate the maximum scale to fit the entire 390x844 frame + borders into the browser
-        // We leave a tiny bit of breathing room (0.92 for height, 0.95 for width)
-        const availableHeight = window.innerHeight * 0.92;
+        // Reduced to 0.85 to make the overall phone slightly smaller vertically on the screen
+        const availableHeight = window.innerHeight * 0.85;
         const availableWidth = window.innerWidth * 0.95;
         
-        // Physical footprint includes 12px borders -> 844 + 24 = 868px height
-        const scaleH = availableHeight / 868;
-        const scaleW = availableWidth / 414;
+        // Physical footprint includes 12px borders -> 800 + 24 = 824px height
+        const scaleH = availableHeight / 824;
+        const scaleW = availableWidth / 384; // 360 + 24px borders
         
         // Scale down if monitor is small. Don't scale up past 1x to avoid blurriness.
         setScale(Math.min(1, scaleH, scaleW));
@@ -70,13 +69,12 @@ function PhoneWrapper({ children }) {
   return (
     <div className="min-h-[100dvh] w-full bg-[#0a0a0a] flex items-center justify-center relative font-sans overflow-hidden">
       {/* PHONE DEVICE - ABSOLUTE PIXEL SIZING W/ CSS SCALING */}
-      {/* By using true 390x844 dimensions and scaling the entire container via CSS transform, 
-          the inner UI elements are mathematically perfect and will never squash! */}
+      {/* Reduced to 360x800 for a slightly thinner and tighter aspect ratio */}
       <div 
         className="relative bg-black rounded-[3rem] border-[12px] border-black ring-[3px] ring-[#3a3a3c] shadow-[0_20px_50px_rgba(0,0,0,0.8)] flex flex-col shrink-0"
         style={{ 
-          width: "390px", 
-          height: "844px", 
+          width: "360px", 
+          height: "800px", 
           transform: `scale(${scale})`, 
           transformOrigin: "center center" 
         }}
