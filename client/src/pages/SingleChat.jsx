@@ -217,12 +217,12 @@ function SingleChat() {
 
   // 🎤 SEND VOICE MESSAGE
   const sendVoiceMessage = async (blob) => {
+    const tempId = Date.now();
     try {
       const formData = new FormData();
       formData.append("voice", blob, "voice.webm");
 
       // Optimistic UI
-      const tempId = Date.now();
       const optimisticMsg = {
         _id: tempId,
         sender: user._id,
@@ -230,7 +230,7 @@ function SingleChat() {
         senderName: user.name,
         messageType: "voice",
         voiceUrl: URL.createObjectURL(blob), // Local preview
-        status: "sent",
+        status: "sending...",
         createdAt: new Date(),
       };
       setMessages((prev) => [...prev, optimisticMsg]);
@@ -243,9 +243,13 @@ function SingleChat() {
       socket.emit("sendMessage", {
         ...optimisticMsg,
         voiceUrl,
+        status: "sent",
       });
     } catch (err) {
       console.error("Error sending voice message:", err);
+      alert("Failed to send voice message. Please check server logs.");
+      // Remove failed optimistic message
+      setMessages((prev) => prev.filter(m => m._id !== tempId));
     }
   };
 

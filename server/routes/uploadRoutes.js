@@ -7,6 +7,9 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
+// ✅ TEST ROUTE (Diagnostic)
+router.get("/test", (req, res) => res.json({ status: "Upload route is reachable" }));
+
 router.post("/voice", upload.single("voice"), async (req, res) => {
   try {
     if (!req.file) {
