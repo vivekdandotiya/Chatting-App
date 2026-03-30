@@ -20,11 +20,19 @@ app.use(
   })
 );
 
-// ✅ MONGO CONNECT
+// ✅ MONGO CONNECT with better error handling
 mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Connected"))
-  .catch((err) => console.log(err));
+  .connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 5000, // Fail after 5s instead of 30s
+  })
+  .then(() => console.log("✅ MongoDB Connected Successfully"))
+  .catch((err) => {
+    console.error("❌ MongoDB Connection Error:");
+    console.error(err.message);
+    if (err.message.includes("whitelist")) {
+      console.error("👉 TIP: Make sure your IP is whitelisted in MongoDB Atlas dashboard!");
+    }
+  });
 
 // ✅ CHECK ENVS
 const requiredEnvs = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "MONGO_URI", "JWT_SECRET"];

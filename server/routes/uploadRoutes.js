@@ -25,7 +25,8 @@ router.post("/voice", upload.single("voice"), async (req, res) => {
       (error, result) => {
         if (error) {
           console.error("Cloudinary upload error:", error);
-          return res.status(500).json({ error: "Upload to Cloudinary failed" });
+          const errorMsg = error.message === "Must supply api_key" ? "Cloudinary keys are missing! Check your Render dashboard." : "Upload failed";
+          return res.status(500).json({ error: errorMsg });
         }
         res.json({ url: result.secure_url });
       }
