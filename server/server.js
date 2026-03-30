@@ -32,6 +32,9 @@ const uploadRoutes = require("./routes/uploadRoutes");
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
 
+// ✅ HEALTH CHECK (for pre-warming Render)
+app.get("/api/health", (req, res) => res.status(200).send("OK"));
+
 // ✅ GET USERS
 app.get("/api/users", async (req, res) => {
   const { userId } = req.query;

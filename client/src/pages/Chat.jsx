@@ -3,9 +3,7 @@ import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import io from "socket.io-client";
 
-const socket = io(import.meta.env.VITE_BACKEND_URL, {
-  transports: ["websocket"],
-});
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 export { socket };
 

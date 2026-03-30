@@ -9,10 +9,21 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [isWakingUp, setIsWakingUp] = useState(false);
   const [error, setError] = useState("");
 
   const appMode = sessionStorage.getItem("appMode") || "phone";
   const isWindows = appMode === "windows";
+
+  React.useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => setIsWakingUp(true), 5000);
+    } else {
+      setIsWakingUp(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -149,7 +160,7 @@ function Login() {
                 {loading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Logging in...</span>
+                    <span>{isWakingUp ? "Waking up server..." : "Logging in..."}</span>
                   </>
                 ) : (
                   <>
@@ -293,7 +304,7 @@ function Login() {
             {loading ? (
               <>
                 <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
-                <span>Signing in...</span>
+                <span>{isWakingUp ? "Waking up..." : "Signing in..."}</span>
               </>
             ) : (
               <span>Sign In</span>
