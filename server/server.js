@@ -35,7 +35,7 @@ mongoose
   });
 
 // ✅ CHECK ENVS
-const requiredEnvs = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "MONGO_URI", "JWT_SECRET"];
+const requiredEnvs = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "MONGO_URI", "JWT_SECRET", "EMAIL_USER", "EMAIL_PASS"];
 requiredEnvs.forEach(env => {
   if (!process.env[env]) console.warn(`⚠️ WARNING: ${env} is missing!`);
 });
