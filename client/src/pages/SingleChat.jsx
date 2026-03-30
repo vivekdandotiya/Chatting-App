@@ -136,14 +136,17 @@ function SingleChat() {
     socket.on("messageDelivered", handleMessageDelivered);
     socket.on("messageRead", handleMessageRead);
     socket.on("receiveReaction", handleReceiveReaction);
+    socket.on("userProfileUpdated", handleProfileUpdate);
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
       socket.off("messageDelivered", handleMessageDelivered);
       socket.off("messageRead", handleMessageRead);
       socket.off("receiveReaction", handleReceiveReaction);
+      socket.off("userProfileUpdated", handleProfileUpdate);
     };
-  }, [isAllowed]);
+  }, [isAllowed, id]);
+
 
   // 🔥 AUTO SCROLL
   useEffect(() => {

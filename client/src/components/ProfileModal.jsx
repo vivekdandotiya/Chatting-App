@@ -41,11 +41,12 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
       setSaving(true);
       setError("");
 
-      const res = await axios.put(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/profile`, {
         userId: user._id,
         name,
         profilePic,
       });
+
 
       // Update local storage
       const updatedUser = { ...user, name: res.data.name, profilePic: res.data.profilePic };
