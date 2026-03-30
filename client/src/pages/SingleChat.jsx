@@ -3,9 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import io from "socket.io-client";
 
-const socket = io(import.meta.env.VITE_BACKEND_URL, {
-  transports: ["websocket"],
-});
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 function SingleChat() {
   const { id } = useParams();

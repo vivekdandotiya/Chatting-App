@@ -26,6 +26,12 @@ mongoose
   .then(() => console.log("MongoDB Connected"))
   .catch((err) => console.log(err));
 
+// ✅ CHECK ENVS
+const requiredEnvs = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "MONGO_URI", "JWT_SECRET"];
+requiredEnvs.forEach(env => {
+  if (!process.env[env]) console.warn(`⚠️ WARNING: ${env} is missing!`);
+});
+
 // ✅ ROUTES
 const authRoutes = require("./routes/authRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
