@@ -55,6 +55,15 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "OTP is required" });
     }
 
+    // 🔒 PASSWORD VALIDATION
+    if (password.length < 5) {
+      return res.status(400).json({ message: "Password must be at least 5 characters long" });
+    }
+    if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+      return res.status(400).json({ message: "Password must contain at least one letter and one number" });
+    }
+
+
     // Verify OTP
     const otpRecord = await OTP.findOne({ email, otp });
     if (!otpRecord) {

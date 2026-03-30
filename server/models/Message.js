@@ -8,10 +8,13 @@ const messageSchema = new mongoose.Schema(
     content: String,
     messageType: {
       type: String,
-      enum: ["text", "voice"],
+      enum: ["text", "voice", "file"],
       default: "text",
     },
     voiceUrl: String,
+    fileUrl: String,
+    fileType: String,
+    fileName: String,
 
     
     status: {

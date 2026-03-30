@@ -283,6 +283,72 @@ function SingleChat() {
     }
   };
 
+  // 📁 FILE UPLOAD LOGIC
+  const fileInputRef = useRef(null);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Optional: Size limit 10MB
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File is too large (max 10MB)");
+      return;
+    }
+
+    await uploadFile(file);
+    e.target.value = null; // Reset input
+  };
+
+  const uploadFile = async (file) => {
+    const tempId = Date.now();
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      // Optimistic UI
+      const isImage = file.type.startsWith("image/");
+      const optimisticMsg = {
+        _id: tempId,
+        sender: user._id,
+        receiver: id,
+        senderName: user.name,
+        messageType: "file",
+        fileUrl: isImage ? URL.createObjectURL(file) : null,
+        fileType: isImage ? "image" : "document",
+        fileName: file.name,
+        status: "uploading...",
+        createdAt: new Date(),
+      };
+      setMessages((prev) => [...prev, optimisticMsg]);
+
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/upload/file`, formData);
+      
+      const serverFileMsg = {
+        ...optimisticMsg,
+        _id: tempId, // Keep tempId for replacement logic
+        fileUrl: res.data.url,
+        fileType: res.data.resource_type === "image" ? "image" : "document",
+        fileName: res.data.original_name,
+        status: "sent",
+      };
+
+      socket.emit("sendMessage", serverFileMsg);
+      
+      // Update local message state from "uploading" to "sent"
+      setMessages(prev => prev.map(m => m._id === tempId ? { ...m, status: "sent", fileUrl: res.data.url } : m));
+
+    } catch (err) {
+      console.error("File upload error:", err);
+      alert("Failed to upload file. Please try again.");
+      setMessages((prev) => prev.filter(m => m._id !== tempId));
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleKeyPress = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -401,6 +467,7 @@ function SingleChat() {
                           cursor-pointer transition-all relative group/bubble
                           ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
                           px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
+                          ${msg.messageType === "file" && msg.fileType === "image" ? "!p-1 !overflow-hidden" : ""}
                         `}
                       >
                         {/* SMILEY BUTTON INSIDE FOR ME */}
@@ -415,7 +482,7 @@ function SingleChat() {
                           </div>
                         )}
                         {!isMe && (
-                          <p className="text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">
+                          <p className={`text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
                             {msg.senderName}
                           </p>
                         )}
@@ -441,26 +508,69 @@ function SingleChat() {
                               <span className={`text-[10px] font-bold ${isMe ? 'text-black/50' : 'text-white/50'}`}>Voice Message</span>
                             </div>
                           </div>
+                        ) : msg.messageType === "file" ? (
+                           <div className="min-w-[150px]">
+                              {msg.fileType === "image" ? (
+                                 <div className="relative group/img">
+                                    <img 
+                                      src={msg.fileUrl} 
+                                      alt="Chat Attachment" 
+                                      className="max-w-full rounded-xl max-h-[300px] object-cover cursor-zoom-in"
+                                      onClick={(e) => { e.stopPropagation(); window.open(msg.fileUrl, '_blank'); }}
+                                    />
+                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white">
+                                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                       {isMe && (
+                                          <span className={msg.status === "read" ? "text-blue-400" : "text-white/70"}>
+                                             {msg.status === "sent" ? "✓" : msg.status === "delivered" ? "✓✓" : "✓✓"}
+                                          </span>
+                                       )}
+                                    </div>
+                                 </div>
+                              ) : (
+                                 <div className="flex items-center gap-3 p-1">
+                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
+                                       <svg className={`w-6 h-6 ${isMe ? 'text-black/60' : 'text-white/60'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                       </svg>
+                                    </div>
+                                    <div className="flex-1 overflow-hidden">
+                                       <p className="text-xs font-bold truncate pr-2">{msg.fileName || "Document"}</p>
+                                       <a 
+                                         href={msg.fileUrl} 
+                                         target="_blank" 
+                                         rel="noopener noreferrer" 
+                                         className={`text-[10px] font-black uppercase tracking-widest hover:underline ${isMe ? 'text-black/40' : 'text-white/40'}`}
+                                         onClick={(e) => e.stopPropagation()}
+                                       >
+                                         Download
+                                       </a>
+                                    </div>
+                                 </div>
+                              )}
+                           </div>
                         ) : (
                           <p className="break-words leading-relaxed">{msg.content}</p>
                         )}
 
-                        <div className={`text-[10px] flex gap-1 justify-end mt-1.5 ${isMe ? 'opacity-50' : 'opacity-40'}`}>
-                          <span>
-                            {new Date(msg.createdAt).toLocaleTimeString([], {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
+                        {msg.messageType !== "file" || msg.fileType !== "image" ? (
+                           <div className={`text-[10px] flex gap-1 justify-end mt-1.5 ${isMe ? 'opacity-50' : 'opacity-40'}`}>
+                             <span>
+                               {new Date(msg.createdAt).toLocaleTimeString([], {
+                                 hour: "2-digit",
+                                 minute: "2-digit",
+                               })}
+                             </span>
 
-                          {isMe && (
-                            <>
-                              {msg.status === "sent" && "✓"}
-                              {msg.status === "delivered" && "✓✓"}
-                              {msg.status === "read" && <span className="text-blue-600">✓✓</span>}
-                            </>
-                          )}
-                        </div>
+                             {isMe && (
+                               <>
+                                 {msg.status === "sent" && "✓"}
+                                 {msg.status === "delivered" && "✓✓"}
+                                 {msg.status === "read" && <span className="text-blue-600">✓✓</span>}
+                               </>
+                             )}
+                           </div>
+                        ) : null}
 
                         {/* DISPLAY REACTIONS */}
                         {msg.reactions && msg.reactions.length > 0 && (
@@ -516,14 +626,38 @@ function SingleChat() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2 relative">
+              <div className="flex gap-2 relative items-center">
+                {/* 📎 ATTACHMENT BUTTON */}
+                <input 
+                   type="file" 
+                   ref={fileInputRef} 
+                   onChange={handleFileSelect} 
+                   className="hidden" 
+                   accept="image/*,.pdf,.doc,.docx,.txt"
+                />
+                <button
+                  onClick={() => fileInputRef.current.click()}
+                  disabled={isUploading}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition ${isUploading ? 'opacity-50' : 'text-gray-400 hover:text-white hover:bg-zinc-800'}`}
+                >
+                  {isUploading ? (
+                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                     </svg>
+                  )}
+                </button>
+
                 <input
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   onKeyDown={handleKeyPress}
-                  placeholder="Type your message..."
+                  placeholder={isUploading ? "Uploading file..." : "Type your message..."}
+                  disabled={isUploading}
                   className="flex-1 px-5 py-3 rounded-full bg-[#121212] border border-[#27272a] text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 transition"
                 />
+
                 {!message.trim() ? (
                   <button
                     onClick={startRecording}

@@ -42,14 +42,19 @@ function Signup() {
       setError("Please enter a valid email");
       return false;
     }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (password.length < 5) {
+      setError("Password must be at least 5 characters");
+      return false;
+    }
+    if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
+      setError("Password must contain at least one letter and one number");
       return false;
     }
     if (password !== confirmPass) {
       setError("Passwords do not match");
       return false;
     }
+
     if (!agreeTerms) {
       setError("Please agree to the Terms & Conditions");
       return false;

@@ -181,8 +181,12 @@ io.on("connection", (socket) => {
       content: data.content,
       messageType: data.messageType || "text",
       voiceUrl: data.voiceUrl || null,
+      fileUrl: data.fileUrl || null,
+      fileType: data.fileType || null,
+      fileName: data.fileName || null,
       status: "sent",
     });
+
 
     const receiverSocket = users[data.receiver];
     const senderSocket = users[data.sender];
