@@ -16,9 +16,32 @@ function Signup() {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
-  // 🛡️ OTP STATES
-  const [step, setStep] = useState(1); // 1: Details, 2: OTP
-  const [otp, setOtp] = useState("");
+  const [isWakingUp, setIsWakingUp] = useState(false);
+  const [isServerReady, setIsServerReady] = useState(false);
+
+  // 🚀 PROACTIVE WAKE UP
+  const wakeServer = async () => {
+    try {
+      await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/health`);
+      setIsServerReady(true);
+    } catch (err) {
+      console.log("Server still sleeping...");
+    }
+  };
+
+  React.useEffect(() => {
+    wakeServer();
+  }, []);
+
+  React.useEffect(() => {
+    let timer;
+    if (loading) {
+      timer = setTimeout(() => setIsWakingUp(true), 3000); // 3s delay
+    } else {
+      setIsWakingUp(false);
+    }
+    return () => clearTimeout(timer);
+  }, [loading]);
 
   const appMode = sessionStorage.getItem("appMode") || "phone";
   const isWindows = appMode === "windows";
@@ -114,8 +137,22 @@ function Signup() {
   if (isWindows) {
     return (
       <div className="min-h-[100dvh] w-full bg-[#0a0a0a] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden text-white font-sans">
+        {/* PROACTIVE SERVER STATUS DOT */}
+        {!isServerReady && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm animate-pulse">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Server Waking...</span>
+          </div>
+        )}
+        {isServerReady && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server Ready</span>
+          </div>
+        )}
+
         <div className="relative z-10 w-full max-w-md">
-          <div className="relative p-6 sm:p-8 md:p-10 rounded-xl bg-[#121212] border border-[#27272a] shadow-2xl">
+          <div className="relative p-6 sm:p-8 md:p-10 rounded-xl bg-[#121212] border border-[#27272a] shadow-2xl overflow-y-auto max-h-[90dvh] scrollbar-hide">
             {/* HEADER */}
             <div className="mb-8 sm:mb-10 flex flex-col items-center">
               <div className="w-12 h-12 sm:w-14 sm:h-14 bg-white rounded-lg flex items-center justify-center mb-4 overflow-hidden">
@@ -130,6 +167,7 @@ function Signup() {
                   : `We sent a 6-digit code to ${email}`}
               </p>
             </div>
+
 
             {/* ERROR MESSAGE */}
             {error && (
@@ -268,6 +306,19 @@ function Signup() {
 
   return (
     <div className="min-h-full w-full bg-black flex flex-col justify-start px-6 sm:px-8 py-8 relative overflow-hidden text-white overflow-y-auto scrollbar-hide font-sans">
+      {/* PROACTIVE SERVER STATUS DOT */}
+      {!isServerReady ? (
+        <div className="absolute top-6 right-6 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md animate-pulse">
+          <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Waking...</span>
+        </div>
+      ) : (
+        <div className="absolute top-6 right-6 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ready</span>
+        </div>
+      )}
+
       <div className="w-full max-w-sm mx-auto flex flex-col pb-6">
         {/* HEADER */}
         <div className="mb-8 flex flex-col items-center">
@@ -296,6 +347,7 @@ function Signup() {
               <label className="block text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5 ml-1">Full Name</label>
               <input
                 type="text" placeholder="John Doe" value={name} onChange={(e) => setName(e.target.value)}
+                onFocus={wakeServer}
                 className="w-full px-4 py-3.5 bg-[#141414] border border-[#2a2a2a] rounded-xl text-white placeholder-[#555555] focus:outline-none focus:border-white transition-all duration-200 text-sm"
               />
             </div>
@@ -303,6 +355,7 @@ function Signup() {
               <label className="block text-[11px] font-semibold text-[#8e8e93] uppercase tracking-wider mb-1.5 ml-1">Email Address</label>
               <input
                 type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)}
+                onFocus={wakeServer}
                 className="w-full px-4 py-3.5 bg-[#141414] border border-[#2a2a2a] rounded-xl text-white placeholder-[#555555] focus:outline-none focus:border-white transition-all duration-200 text-sm"
               />
             </div>
@@ -312,6 +365,7 @@ function Signup() {
                 <input
                   type={showPass ? "text" : "password"} placeholder="Create password"
                   value={password} onChange={(e) => { setPassword(e.target.value); checkPasswordStrength(e.target.value); }}
+                  onFocus={wakeServer}
                   className="w-full px-4 py-3.5 bg-[#141414] border border-[#2a2a2a] rounded-xl text-white placeholder-[#555555] focus:outline-none focus:border-white transition-all duration-200 text-sm"
                 />
                 <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-lg text-[#555]">
@@ -324,6 +378,7 @@ function Signup() {
               <input
                 type={showConfirmPass ? "text" : "password"} placeholder="Confirm password"
                 value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)}
+                onFocus={wakeServer}
                 className="w-full px-4 py-3.5 bg-[#141414] border border-[#2a2a2a] rounded-xl text-white placeholder-[#555555] focus:outline-none focus:border-white transition-all duration-200 text-sm"
               />
             </div>
@@ -338,9 +393,14 @@ function Signup() {
             </label>
             <button
               type="submit" disabled={loading || !agreeTerms}
-              className="w-full py-3.5 mt-2 bg-white text-black font-semibold rounded-xl"
+              className="w-full py-3.5 mt-2 bg-white text-black font-semibold rounded-xl flex items-center justify-center gap-2"
             >
-              {loading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto"></div> : "Continue"}
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                  <span>{isWakingUp ? "Waking..." : "Joining..."}</span>
+                </>
+              ) : "Continue"}
             </button>
           </form>
         ) : (
@@ -357,9 +417,14 @@ function Signup() {
             <div className="flex flex-col gap-4">
               <button
                 type="submit" disabled={loading}
-                className="w-full py-4 bg-white text-black font-bold rounded-2xl shadow-xl active:scale-[0.98] transition-transform"
+                className="w-full py-4 bg-white text-black font-bold rounded-2xl shadow-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
               >
-                {loading ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto"></div> : "Verify & Sign Up"}
+                {loading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div>
+                    <span>{isWakingUp ? "Waking..." : "Verifying..."}</span>
+                  </>
+                ) : "Verify & Sign Up"}
               </button>
               <div className="flex flex-col items-center gap-3 mt-2">
                 <button type="button" onClick={() => setStep(1)} className="text-[#8e8e93] text-[12px] font-medium hover:text-white transition">Change Email Address</button>
@@ -368,6 +433,7 @@ function Signup() {
             </div>
           </form>
         )}
+
 
         <div className="my-7 flex items-center gap-4">
            <div className="flex-1 h-px bg-[#2a2a2a]"></div>

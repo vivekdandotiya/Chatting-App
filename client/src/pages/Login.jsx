@@ -9,18 +9,26 @@ function Login() {
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [isWakingUp, setIsWakingUp] = useState(false);
-  const [error, setError] = useState("");
+  const [isServerReady, setIsServerReady] = useState(false);
 
-  
+  // 🚀 PROACTIVE WAKE UP
+  const wakeServer = async () => {
+    try {
+      await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/health`);
+      setIsServerReady(true);
+    } catch (err) {
+      console.log("Server still sleeping...");
+    }
+  };
 
-  const appMode = sessionStorage.getItem("appMode") || "phone";
-  const isWindows = appMode === "windows";
+  React.useEffect(() => {
+    wakeServer();
+  }, []);
 
   React.useEffect(() => {
     let timer;
     if (loading) {
-      timer = setTimeout(() => setIsWakingUp(true), 5000);
+      timer = setTimeout(() => setIsWakingUp(true), 3000); // Shorter 3s delay
     } else {
       setIsWakingUp(false);
     }
@@ -62,6 +70,20 @@ function Login() {
   if (isWindows) {
     return (
       <div className="min-h-[100dvh] w-full bg-[#0a0a0a] flex items-center justify-center p-4 sm:p-6 relative overflow-hidden text-white font-sans">
+        {/* PROACTIVE LOGING STATUS DOT */}
+        {!isServerReady && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm animate-pulse">
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Server Waking...</span>
+          </div>
+        )}
+        {isServerReady && (
+          <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm">
+            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Server Ready</span>
+          </div>
+        )}
+
         <div className="relative z-10 w-full max-w-md">
           <div className="relative p-6 sm:p-8 md:p-10 rounded-xl bg-[#121212] border border-[#27272a] shadow-2xl">
             {/* HEADER */}
@@ -103,6 +125,7 @@ function Login() {
                   placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={wakeServer}
                   disabled={loading}
                   className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-[#18181b] border border-[#27272a] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-gray-400 transition-all duration-300 text-sm sm:text-base disabled:opacity-50"
                 />
@@ -119,6 +142,7 @@ function Login() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={wakeServer}
                     disabled={loading}
                     className="w-full px-4 sm:px-5 py-3 sm:py-4 bg-[#18181b] border border-[#27272a] rounded-lg text-white placeholder-gray-600 focus:outline-none focus:border-gray-400 transition-all duration-300 text-sm sm:text-base disabled:opacity-50"
                   />
@@ -132,6 +156,7 @@ function Login() {
                   </button>
                 </div>
               </div>
+
 
               {/* REMEMBER ME & FORGOT PASSWORD */}
               <div className="flex items-center justify-between pt-2">
@@ -207,6 +232,19 @@ function Login() {
 
   return (
     <div className="min-h-full w-full bg-black flex flex-col justify-center px-6 sm:px-8 py-8 relative overflow-hidden text-white font-sans">
+      {/* PROACTIVE LOGING STATUS DOT */}
+      {!isServerReady ? (
+        <div className="absolute top-6 right-6 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md animate-pulse">
+          <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+          <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Waking...</span>
+        </div>
+      ) : (
+        <div className="absolute top-6 right-6 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md">
+          <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
+          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Ready</span>
+        </div>
+      )}
+
       <div className="w-full max-w-sm mx-auto flex flex-col">
         {/* HEADER */}
         <div className="mb-8 flex flex-col items-center">
@@ -220,6 +258,7 @@ function Login() {
             Sign in to continue to your chats
           </p>
         </div>
+
 
         {/* ERROR MESSAGE */}
         {error && (

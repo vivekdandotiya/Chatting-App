@@ -11,10 +11,29 @@ import ExperienceGateway from "./components/ExperienceGateway";
 function App() {
   const [appMode, setAppMode] = useState(sessionStorage.getItem('appMode'));
 
+  const [isServerReady, setIsServerReady] = useState(false);
+
   useEffect(() => {
-    // Pre-warm the backend on Render
-    fetch(`${import.meta.env.VITE_BACKEND_URL}/api/health`).catch(() => {});
-  }, []);
+    // 🚀 PROACTIVE WAKE UP
+    const wakeServer = async () => {
+      try {
+        await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/health`);
+        setIsServerReady(true);
+        console.log("✅ Backend is awake and ready!");
+      } catch (err) {
+        console.log("⏳ Backend is still waking up...");
+      }
+    };
+    
+    wakeServer();
+    // Re-ping every 10s if not ready
+    const interval = setInterval(() => {
+      if (!isServerReady) wakeServer();
+    }, 10000);
+    
+    return () => clearInterval(interval);
+  }, [isServerReady]);
+
 
   const handleSetMode = (mode) => {
     sessionStorage.setItem('appMode', mode);
