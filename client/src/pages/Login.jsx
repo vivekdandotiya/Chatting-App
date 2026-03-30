@@ -10,6 +10,9 @@ function Login() {
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
+  const [error, setError] = useState("");
+  const [isWakingUp, setIsWakingUp] = useState(false);
+
 
   // 🚀 PROACTIVE WAKE UP
   const wakeServer = async () => {
