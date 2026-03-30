@@ -13,6 +13,7 @@ const messageSchema = new mongoose.Schema(
     },
     voiceUrl: String,
 
+    
     status: {
       type: String,
       enum: ["sent", "delivered", "read"],
