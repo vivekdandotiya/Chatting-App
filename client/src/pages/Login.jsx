@@ -25,7 +25,11 @@ function Login() {
     wakeServer();
   }, []);
 
+  const appMode = sessionStorage.getItem("appMode") || "phone";
+  const isWindows = appMode === "windows";
+
   React.useEffect(() => {
+
     let timer;
     if (loading) {
       timer = setTimeout(() => setIsWakingUp(true), 3000); // Shorter 3s delay

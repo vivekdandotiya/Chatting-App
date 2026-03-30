@@ -19,6 +19,11 @@ function Signup() {
   const [isWakingUp, setIsWakingUp] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
 
+  // 🛡️ OTP STATES
+  const [step, setStep] = useState(1); // 1: Details, 2: OTP
+  const [otp, setOtp] = useState("");
+
+
   // 🚀 PROACTIVE WAKE UP
   const wakeServer = async () => {
     try {
