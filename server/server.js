@@ -68,6 +68,9 @@ app.get("/api/users", async (req, res) => {
 
     const usersWithStatus = users.map((u) => {
       const userObj = u.toObject();
+      // Ensure profilePic defaults to empty string if not present
+      if (!userObj.profilePic) userObj.profilePic = "";
+
       if (userObj._id.toString() === userId) {
         return userObj;
       }
@@ -267,6 +270,12 @@ io.on("connection", (socket) => {
     if (senderSocket) {
       io.to(senderSocket).emit("inviteAccepted", data);
     }
+  });
+
+  // 🔥 UPDATE PROFILE BROADCAST
+  socket.on("updateProfile", (data) => {
+    // Notify EVERYONE about the profile change
+    socket.broadcast.emit("userProfileUpdated", data);
   });
 
   socket.on("disconnect", () => {

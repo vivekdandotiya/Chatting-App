@@ -16,6 +16,7 @@ function SingleChat() {
   const [isAllowed, setIsAllowed] = useState(false);
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [targetName, setTargetName] = useState("Chat");
+  const [targetPic, setTargetPic] = useState("");
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
   const [showPickerFor, setShowPickerFor] = useState(null); // For mobile tap toggle
   
@@ -49,6 +50,7 @@ function SingleChat() {
 
         if (targetUser) {
           setTargetName(targetUser.name);
+          setTargetPic(targetUser.profilePic || "");
         }
 
         if (targetUser && targetUser.connectionStatus === "accepted") {
@@ -87,7 +89,7 @@ function SingleChat() {
     }
   }, [user?._id]);
 
-  // 🔥 RECEIVE MESSAGE
+  // 🔥 RECEIVE MESSAGE & PROFILE UPDATES
   useEffect(() => {
     if (!isAllowed) return;
 
@@ -97,6 +99,13 @@ function SingleChat() {
         if (exists) return prev;
         return [...prev, msg];
       });
+    };
+
+    const handleProfileUpdate = (data) => {
+      if (data.userId === id) {
+        setTargetName(data.name);
+        setTargetPic(data.profilePic);
+      }
     };
 
     const handleMessageDelivered = (msg) => {
@@ -373,9 +382,14 @@ function SingleChat() {
           </svg>
         </button>
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center">
-             <span className="font-bold">{targetName[0]?.toUpperCase()}</span>
+          <div className="w-10 h-10 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center overflow-hidden">
+             {targetPic ? (
+               <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
+             ) : (
+               <span className="font-bold">{targetName[0]?.toUpperCase()}</span>
+             )}
           </div>
+
           <div>
              <h2 className="text-base font-semibold">{targetName}</h2>
              <p className="text-xs text-gray-500">{isAllowed ? 'Connected' : 'Looking for connection'}</p>

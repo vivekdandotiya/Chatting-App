@@ -64,12 +64,24 @@ function Chat() {
       refreshUsers();
     });
 
+    socket.on("userProfileUpdated", (data) => {
+      setUsers((prev) =>
+        prev.map((u) =>
+          u._id === data.userId
+            ? { ...u, name: data.name, profilePic: data.profilePic }
+            : u
+        )
+      );
+    });
+
     return () => {
       socket.off("onlineUsers");
       socket.off("receiveMessage");
       socket.off("receiveInvite");
       socket.off("inviteAccepted");
+      socket.off("userProfileUpdated");
     };
+
   }, []);
 
   if (loading) {

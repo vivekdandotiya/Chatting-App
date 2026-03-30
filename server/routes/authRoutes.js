@@ -7,5 +7,6 @@ const authController = require("../controllers/authController");
 router.post("/send-otp", authController.sendOTP);
 router.post("/register", authController.registerUser);
 router.post("/login", authController.loginUser);
+router.put("/profile", authController.updateUserProfile);
 
-module.exports = router;
+module.exports = router;
