@@ -20,19 +20,37 @@ app.use(
   })
 );
 
-// ✅ MONGO CONNECT with better error handling
-mongoose
-  .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 5000, // Fail after 5s instead of 30s
-  })
-  .then(() => console.log("✅ MongoDB Connected Successfully"))
-  .catch((err) => {
-    console.error("❌ MongoDB Connection Error:");
-    console.error(err.message);
-    if (err.message.includes("whitelist")) {
-      console.error("👉 TIP: Make sure your IP is whitelisted in MongoDB Atlas dashboard!");
+// ✅ MONGO CONNECT with auto-retry for Render cold starts
+const connectDB = async (retries = 10) => {
+  for (let i = 1; i <= retries; i++) {
+    try {
+      console.log(`🔄 MongoDB connection attempt ${i}/${retries}...`);
+      console.log(`   URI: ${process.env.MONGO_URI ? process.env.MONGO_URI.replace(/\/\/.*@/, '//***:***@') : 'NOT SET'}`);
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 15000,
+      });
+      console.log("✅ MongoDB Connected Successfully");
+      return;
+    } catch (err) {
+      console.error(`❌ MongoDB Connection Attempt ${i} Failed:`, err.message);
+      if (err.message.includes("whitelist") || err.message.includes("IP")) {
+        console.error("👉 TIP: Whitelist 0.0.0.0/0 in MongoDB Atlas → Network Access!");
+      }
+      if (err.message.includes("authentication") || err.message.includes("auth")) {
+        console.error("👉 TIP: Check your database username/password in the connection string!");
+      }
+      if (i < retries) {
+        console.log(`⏳ Retrying in 10 seconds...`);
+        await new Promise(r => setTimeout(r, 10000));
+      }
     }
-  });
+  }
+  console.error("❌ All MongoDB connection attempts failed. Server will run but DB operations will fail.");
+};
+
+connectDB();
 
 // ✅ CHECK ENVS
 const requiredEnvs = ["CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET", "MONGO_URI", "JWT_SECRET", "EMAIL_USER", "EMAIL_PASS"];
@@ -52,15 +70,41 @@ app.use("/api/status", statusRoutes);
 app.get("/api/health", (req, res) => res.status(200).send("OK"));
 
 // ✅ DB STATUS CHECK (diagnostic endpoint)
-app.get("/api/db-status", (req, res) => {
+app.get("/api/db-status", async (req, res) => {
   const state = mongoose.connection.readyState;
   const stateMap = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
   const status = stateMap[state] || "unknown";
   const isConnected = state === 1;
+
+  // Allow forcing a reconnect via ?reconnect=true
+  if (req.query.reconnect === "true" && !isConnected) {
+    try {
+      await mongoose.disconnect().catch(() => {});
+      await mongoose.connect(process.env.MONGO_URI, {
+        serverSelectionTimeoutMS: 15000,
+        socketTimeoutMS: 45000,
+        connectTimeoutMS: 15000,
+      });
+      return res.status(200).json({
+        database: "connected",
+        message: "Reconnected successfully!",
+        timestamp: new Date().toISOString(),
+      });
+    } catch (err) {
+      return res.status(503).json({
+        database: "disconnected",
+        error: err.message,
+        mongoUri: process.env.MONGO_URI ? process.env.MONGO_URI.replace(/\/\/.*@/, "//***:***@") : "NOT SET",
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   res.status(isConnected ? 200 : 503).json({
     database: status,
     mongoUri: process.env.MONGO_URI ? process.env.MONGO_URI.replace(/\/\/.*@/, "//***:***@") : "NOT SET",
     timestamp: new Date().toISOString(),
+    tip: !isConnected ? "Try /api/db-status?reconnect=true or check MongoDB Atlas: 1) Resume cluster if paused, 2) Whitelist 0.0.0.0/0 in Network Access" : undefined,
   });
 });
 
