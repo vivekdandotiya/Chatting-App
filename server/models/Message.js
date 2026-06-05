@@ -24,6 +24,10 @@ const messageSchema = new mongoose.Schema(
     },
 
     readAt: Date,
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
     reactions: [
       {
         user: String,

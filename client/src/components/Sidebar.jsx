@@ -1,15 +1,25 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import ProfileModal from "./ProfileModal";
+import StatusModal from "./StatusModal";
+import StatusViewer from "./StatusViewer";
 
 function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }) {
   const navigate = useNavigate();
+  const { id: activeChatId } = useParams();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("chats");
   const [loadingAction, setLoadingAction] = useState(null);
+  
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
+  const [activeStory, setActiveStory] = useState(null); // Story currently being viewed in StatusViewer
+  
   const [currentUser, setCurrentUser] = useState(JSON.parse(sessionStorage.getItem("user")));
+  const [stories, setStories] = useState([]);
+  const [typingUsers, setTypingUsers] = useState({});
 
   // Ensure socket joins setup
   useEffect(() => {
@@ -17,6 +27,49 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
       socket.emit("setup", currentUser._id);
     }
   }, [currentUser]);
+
+  // 🔥 FETCH STORIES
+  const fetchStories = async () => {
+    if (!currentUser?._id) return;
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_BACKEND_URL}/api/status?userId=${currentUser._id}`
+      );
+      setStories(res.data);
+    } catch (err) {
+      console.error("Stories error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchStories();
+    if (activeTab === "status") {
+      const interval = setInterval(fetchStories, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [currentUser?._id, activeTab]);
+
+  // 🔥 SOCKET LISTENERS FOR TYPING & ONLINE LIST
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("typing", ({ sender }) => {
+      setTypingUsers((prev) => ({ ...prev, [sender]: true }));
+    });
+
+    socket.on("stopTyping", ({ sender }) => {
+      setTypingUsers((prev) => {
+        const copy = { ...prev };
+        delete copy[sender];
+        return copy;
+      });
+    });
+
+    return () => {
+      socket.off("typing");
+      socket.off("stopTyping");
+    };
+  }, [socket]);
 
   const onProfileUpdate = (updatedUser) => {
     setCurrentUser(updatedUser);
@@ -70,8 +123,11 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
 
   const getInitials = (n) => n?.split(" ").map(x => x[0]).join("").toUpperCase() || "?";
 
+  // Check if current user has an active story
+  const myStories = stories.find(s => s.user._id === currentUser._id);
+
   return (
-    <div className="w-full h-[100dvh] max-w-full bg-[#0a0a0a] flex flex-col overflow-hidden border-r border-[#27272a] font-sans">
+    <div className="w-full h-full max-w-full bg-[#0a0a0a] flex flex-col overflow-hidden border-r border-[#27272a] font-sans relative">
       
       {/* HEADER */}
       <div className="px-5 pt-6 pb-5 border-b border-[#27272a] flex-shrink-0 bg-[#0a0a0a] z-10">
@@ -108,17 +164,18 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
 
       {/* TABS */}
       <div className="px-4 pt-4 flex gap-2 border-b border-[#27272a] overflow-x-auto scrollbar-hide flex-shrink-0 pb-4 bg-[#0a0a0a]">
-        {["chats", "invites", "discover"].map((tab) => (
+        {["chats", "status", "invites", "discover"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 ${
+            className={`px-5 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 flex-shrink-0 ${
               activeTab === tab
                 ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.2)]"
                 : "text-gray-500 hover:text-white hover:bg-[#18181b]"
             }`}
           >
             {tab === "chats" && `Chats (${friends.length})`}
+            {tab === "status" && `Status ${stories.length > 0 ? `(${stories.length})` : ''}`}
             {tab === "invites" && `Invites ${invites.length > 0 ? `(${invites.length})` : ''}`}
             {tab === "discover" && "Discover"}
           </button>
@@ -141,42 +198,158 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                 <p className="text-gray-600 font-medium">No active connections yet. Head to Discover to find someone to chat with!</p>
               </div>
             ) : (
-              friends.map((u) => (
-                <div
-                  key={u._id}
-                  onClick={() => {
-                    navigate(`/chat/${u._id}`);
-                    setUnread((prev) => ({ ...prev, [u._id]: 0 }));
-                  }}
-                  className="flex items-center gap-4 p-4 rounded-2xl hover:bg-[#121212] cursor-pointer transition-all duration-300 border border-transparent hover:border-[#27272a] mb-2 group shadow-sm hover:shadow-md"
-                >
-                  <div className="relative">
-                    <div className="w-14 h-14 rounded-2xl bg-[#18181b] flex items-center justify-center flex-shrink-0 border border-[#27272a] overflow-hidden group-hover:scale-105 transition-transform">
-                      {u.profilePic ? (
-                        <img src={u.profilePic} alt={u.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-white font-black text-lg">{getInitials(u.name)}</span>
+              friends.map((u) => {
+                const isActiveChat = activeChatId === u._id;
+                const isTyping = typingUsers[u._id];
+
+                return (
+                  <div
+                    key={u._id}
+                    onClick={() => {
+                      navigate(`/chat/${u._id}`);
+                      setUnread((prev) => ({ ...prev, [u._id]: 0 }));
+                    }}
+                    className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                      isActiveChat 
+                        ? "bg-[#18181b] border-[#27272a] shadow-lg" 
+                        : "hover:bg-[#121212] border-transparent hover:border-[#27272a]"
+                    } mb-2 group`}
+                  >
+                    <div className="relative">
+                      <div className="w-14 h-14 rounded-2xl bg-[#18181b] flex items-center justify-center flex-shrink-0 border border-[#27272a] overflow-hidden group-hover:scale-105 transition-transform">
+                        {u.profilePic ? (
+                          <img src={u.profilePic} alt={u.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-white font-black text-lg">{getInitials(u.name)}</span>
+                        )}
+                      </div>
+                      {onlineUsers?.[u._id] && (
+                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#0a0a0a] rounded-full shadow-lg"></div>
                       )}
                     </div>
-                    {onlineUsers?.[u._id] && (
-                      <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-black rounded-full"></div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <h3 className="text-white font-bold text-[15px] truncate tracking-tight">{u.name}</h3>
+                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                          {onlineUsers?.[u._id] ? "Online" : "Offline"}
+                        </span>
+                      </div>
+                      {isTyping ? (
+                        <p className="text-green-500 text-[13px] truncate font-bold animate-pulse">typing...</p>
+                      ) : (
+                        <p className="text-gray-500 text-[13px] truncate font-medium">Click to open chat</p>
+                      )}
+                    </div>
+                    {unread && unread[u._id] > 0 && (
+                      <span className="w-6 h-6 bg-white text-black text-[11px] font-black rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                        {unread[u._id]}
+                      </span>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <h3 className="text-white font-bold text-[15px] truncate tracking-tight">{u.name}</h3>
-                      <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">Active</span>
-                    </div>
-                    <p className="text-gray-500 text-[13px] truncate font-medium">Click to open chat</p>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* STATUS TAB */}
+        {activeTab === "status" && (
+          <div className="animate-fadeIn space-y-4">
+            
+            {/* SELF STATUS */}
+            <div className="p-3 bg-[#121212] rounded-2xl border border-[#27272a] shadow-md">
+              <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1 mb-2">My Status</h4>
+              <div 
+                onClick={() => {
+                  if (myStories) {
+                    setActiveStory(myStories);
+                  } else {
+                    setIsStatusModalOpen(true);
+                  }
+                }}
+                className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#18181b] cursor-pointer transition-all duration-300"
+              >
+                <div className="relative">
+                  <div 
+                    className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-800 border-2 ${
+                      myStories ? "border-green-500 p-0.5" : "border-[#27272a]"
+                    }`}
+                  >
+                    {currentUser?.profilePic ? (
+                      <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <span className="text-white font-bold text-sm">{getInitials(currentUser?.name)}</span>
+                    )}
                   </div>
-                  {unread && unread[u._id] > 0 && (
-                    <span className="w-6 h-6 bg-white text-black text-[11px] font-black rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                      {unread[u._id]}
-                    </span>
+                  {!myStories && (
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white text-black rounded-full flex items-center justify-center border-2 border-[#121212] shadow-md font-bold text-xs select-none">
+                      +
+                    </div>
                   )}
                 </div>
-              ))
-            )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-bold text-[14px]">My Status</h3>
+                  <p className="text-gray-500 text-[12px] truncate font-medium">
+                    {myStories 
+                      ? `${myStories.statuses.length} status update${myStories.statuses.length > 1 ? 's' : ''}` 
+                      : "Tap to add status update"
+                    }
+                  </p>
+                </div>
+                {myStories && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsStatusModalOpen(true);
+                    }}
+                    className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition border border-white/5 text-gray-400 hover:text-white"
+                    title="Add new status"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* FRIENDS STATUSES */}
+            <div className="p-3 bg-[#121212] rounded-2xl border border-[#27272a] shadow-md">
+              <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1 mb-2">Recent Updates</h4>
+              
+              {stories.filter(s => s.user._id !== currentUser._id).length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-gray-600 text-sm text-center">
+                  <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mb-1">No updates</p>
+                  <p className="text-gray-600 font-medium text-xs px-4">None of your connections have posted updates recently.</p>
+                </div>
+              ) : (
+                stories.filter(s => s.user._id !== currentUser._id).map((story) => (
+                  <div
+                    key={story.user._id}
+                    onClick={() => setActiveStory(story)}
+                    className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#18181b] cursor-pointer transition-all duration-300 mb-1"
+                  >
+                    {/* Ring border depending on status count */}
+                    <div className="relative">
+                      <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-800 border-2 border-green-500 p-0.5">
+                        {story.user.profilePic ? (
+                          <img src={story.user.profilePic} alt={story.user.name} className="w-full h-full object-cover rounded-full" />
+                        ) : (
+                          <span className="text-white font-bold text-sm">{getInitials(story.user.name)}</span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-bold text-[14px]">{story.user.name}</h3>
+                      <p className="text-gray-500 text-[12px] truncate font-medium">
+                        {story.statuses.length} update{story.statuses.length > 1 ? 's' : ''}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
           </div>
         )}
 
@@ -278,7 +451,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
         </div>
       </div>
 
-      {/* MODAL */}
+      {/* PROFILE MODAL */}
       <ProfileModal 
         isOpen={isProfileOpen} 
         onClose={() => setIsProfileOpen(false)} 
@@ -286,6 +459,22 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
         socket={socket}
         onUpdate={onProfileUpdate}
       />
+
+      {/* STATUS ADD MODAL */}
+      <StatusModal
+        isOpen={isStatusModalOpen}
+        onClose={() => setIsStatusModalOpen(false)}
+        currentUser={currentUser}
+        onStatusPosted={fetchStories}
+      />
+
+      {/* FULLSCREEN STORIES VIEWER */}
+      {activeStory && (
+        <StatusViewer
+          userStory={activeStory}
+          onClose={() => setActiveStory(null)}
+        />
+      )}
     </div>
   );
 }

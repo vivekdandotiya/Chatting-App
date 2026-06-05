@@ -1,9 +1,97 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import io from "socket.io-client";
+import { socket } from "./Chat";
 
-const socket = io(import.meta.env.VITE_BACKEND_URL);
+// 🎤 INTERACTIVE VOICE PLAYER SUB-COMPONENT
+const VoicePlayer = ({ voiceUrl, isMe }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const audioRef = useRef(null);
+
+  useEffect(() => {
+    audioRef.current = new Audio(voiceUrl);
+    
+    const onLoadedMetadata = () => {
+      setDuration(audioRef.current.duration || 0);
+    };
+    
+    const onTimeUpdate = () => {
+      setCurrentTime(audioRef.current.currentTime || 0);
+    };
+    
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const audioEl = audioRef.current;
+    audioEl.addEventListener("loadedmetadata", onLoadedMetadata);
+    audioEl.addEventListener("timeupdate", onTimeUpdate);
+    audioEl.addEventListener("ended", onEnded);
+
+    return () => {
+      audioEl.pause();
+      audioEl.removeEventListener("loadedmetadata", onLoadedMetadata);
+      audioEl.removeEventListener("timeupdate", onTimeUpdate);
+      audioEl.removeEventListener("ended", onEnded);
+    };
+  }, [voiceUrl]);
+
+  const togglePlay = (e) => {
+    e.stopPropagation();
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const formatTime = (time) => {
+    if (isNaN(time) || time === Infinity) return "0:00";
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60).toString().padStart(2, "0");
+    return `${mins}:${secs}`;
+  };
+
+  return (
+    <div className="flex items-center gap-3 min-w-[220px] py-1 select-none">
+      <button 
+        onClick={togglePlay}
+        className={`w-10 h-10 rounded-full flex items-center justify-center transition shadow-sm ${
+          isMe ? 'bg-black/35 text-white hover:bg-black/50' : 'bg-[#111b21] text-white hover:bg-[#1f2c34]'
+        }`}
+      >
+        {isPlaying ? (
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+          </svg>
+        ) : (
+          <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+        )}
+      </button>
+      <div className="flex-1 flex flex-col gap-1">
+        <div className={`h-1.5 rounded-full overflow-hidden relative ${isMe ? 'bg-black/20' : 'bg-white/10'}`}>
+          <div 
+            className={`h-full absolute left-0 top-0 transition-all duration-100 ease-linear ${isMe ? 'bg-[#e9edef]' : 'bg-[#00a884]'}`}
+            style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
+          ></div>
+        </div>
+        <div className="flex justify-between items-center text-[9px] font-bold">
+          <span className={isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}>
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+          <span className={isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}>Voice Message</span>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function SingleChat() {
   const { id } = useParams();
@@ -17,8 +105,9 @@ function SingleChat() {
   const [loadingStatus, setLoadingStatus] = useState(true);
   const [targetName, setTargetName] = useState("Chat");
   const [targetPic, setTargetPic] = useState("");
+  
   const [hoveredMessageId, setHoveredMessageId] = useState(null);
-  const [showPickerFor, setShowPickerFor] = useState(null); // For mobile tap toggle
+  const [showPickerFor, setShowPickerFor] = useState(null);
   const [isServerReady, setIsServerReady] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
   
@@ -27,6 +116,15 @@ function SingleChat() {
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef(null);
+
+  // 📝 TYPING STATES
+  const [isTargetTyping, setIsTargetTyping] = useState(false);
+  const [localTyping, setLocalTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
+
+  // 🔍 SEARCH STATES
+  const [isSearching, setIsSearching] = useState(false);
+  const [chatSearchQuery, setChatSearchQuery] = useState("");
 
   const emojis = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
@@ -122,11 +220,19 @@ function SingleChat() {
     if (!isAllowed) return;
 
     const handleReceiveMessage = (msg) => {
-      setMessages((prev) => {
-        const exists = prev.some((m) => m._id === msg._id);
-        if (exists) return prev;
-        return [...prev, msg];
-      });
+      // If it belongs to this conversation
+      if ((msg.sender === id && msg.receiver === user._id) || (msg.sender === user._id && msg.receiver === id)) {
+        setMessages((prev) => {
+          const exists = prev.some((m) => m._id === msg._id);
+          if (exists) return prev;
+          return [...prev, msg];
+        });
+        
+        // Mark read instantly if active
+        if (msg.sender === id) {
+          socket.emit("markAsRead", { sender: id, receiver: user._id });
+        }
+      }
     };
 
     const handleProfileUpdate = (data) => {
@@ -147,11 +253,13 @@ function SingleChat() {
     };
 
     const handleMessageRead = ({ receiver }) => {
-      setMessages((prev) =>
-        prev.map((m) =>
-          m.receiver === receiver ? { ...m, status: "read" } : m
-        )
-      );
+      if (receiver === id) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.receiver === receiver ? { ...m, status: "read" } : m
+          )
+        );
+      }
     };
 
     const handleReceiveReaction = ({ messageId, reactions }) => {
@@ -160,11 +268,47 @@ function SingleChat() {
       );
     };
 
+    // Sockets for typing
+    const handleTyping = ({ sender }) => {
+      if (sender === id) {
+        setIsTargetTyping(true);
+      }
+    };
+
+    const handleStopTyping = ({ sender }) => {
+      if (sender === id) {
+        setIsTargetTyping(false);
+      }
+    };
+
+    // Sockets for delete message
+    const handleMessageDeleted = ({ messageId }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId || String(m._id) === String(messageId)
+            ? { 
+                ...m, 
+                isDeleted: true, 
+                content: "This message was deleted",
+                voiceUrl: null,
+                fileUrl: null,
+                fileType: null,
+                fileName: null,
+                reactions: [],
+              } 
+            : m
+        )
+      );
+    };
+
     socket.on("receiveMessage", handleReceiveMessage);
     socket.on("messageDelivered", handleMessageDelivered);
     socket.on("messageRead", handleMessageRead);
     socket.on("receiveReaction", handleReceiveReaction);
     socket.on("userProfileUpdated", handleProfileUpdate);
+    socket.on("typing", handleTyping);
+    socket.on("stopTyping", handleStopTyping);
+    socket.on("messageDeleted", handleMessageDeleted);
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
@@ -172,9 +316,11 @@ function SingleChat() {
       socket.off("messageRead", handleMessageRead);
       socket.off("receiveReaction", handleReceiveReaction);
       socket.off("userProfileUpdated", handleProfileUpdate);
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
+      socket.off("messageDeleted", handleMessageDeleted);
     };
   }, [isAllowed, id]);
-
 
   // 🔥 AUTO SCROLL
   useEffect(() => {
@@ -196,12 +342,53 @@ function SingleChat() {
       createdAt: new Date(),
     };
 
-    // ✅ UI me turant add
+    // UI add
     setMessages((prev) => [...prev, newMsg]);
 
-    // ✅ backend ko bhejo
+    // Send
     socket.emit("sendMessage", newMsg);
     setMessage("");
+
+    // Stop local typing
+    stopLocalTyping();
+  };
+
+  // 📝 LOCAL INPUT CHANGED (Typing status)
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+
+    if (!localTyping && user?._id && id) {
+      setLocalTyping(true);
+      socket.emit("typing", { sender: user._id, receiver: id });
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      if (user?._id && id) {
+        socket.emit("stopTyping", { sender: user._id, receiver: id });
+        setLocalTyping(false);
+      }
+    }, 2000);
+  };
+
+  const stopLocalTyping = () => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    if (localTyping && user?._id && id) {
+      socket.emit("stopTyping", { sender: user._id, receiver: id });
+      setLocalTyping(false);
+    }
+  };
+
+  // 🚫 DELETE MESSAGE FOR EVERYONE
+  const handleDeleteMessage = (msgId) => {
+    if (window.confirm("Delete this message for everyone?")) {
+      socket.emit("deleteMessage", { messageId: msgId, userId: user._id });
+    }
   };
 
   // 🎤 START RECORDING
@@ -248,7 +435,6 @@ function SingleChat() {
       mediaRecorder.stop();
       setIsRecording(false);
       clearInterval(timerRef.current);
-      // Stop all tracks
       mediaRecorder.stream.getTracks().forEach(track => track.stop());
     }
   };
@@ -296,7 +482,7 @@ function SingleChat() {
         receiver: id,
         senderName: user.name,
         messageType: "voice",
-        voiceUrl: URL.createObjectURL(blob), // Local preview
+        voiceUrl: URL.createObjectURL(blob),
         status: "sending...",
         createdAt: new Date(),
       };
@@ -315,10 +501,7 @@ function SingleChat() {
       });
     } catch (err) {
       console.error("Voice upload error:", err);
-      // Detailed alert
-      const errorMsg = err.response?.data?.error || err.message || "Unknown error";
-      alert(`Voice Error: ${errorMsg}. Make sure Cloudinary is configured on Render!`);
-      // Remove failed optimistic message
+      alert("Voice upload failed.");
       setMessages((prev) => prev.filter(m => m._id !== tempId));
     }
   };
@@ -331,14 +514,13 @@ function SingleChat() {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Optional: Size limit 10MB
     if (file.size > 10 * 1024 * 1024) {
       alert("File is too large (max 10MB)");
       return;
     }
 
     await uploadFile(file);
-    e.target.value = null; // Reset input
+    e.target.value = null;
   };
 
   const uploadFile = async (file) => {
@@ -348,7 +530,6 @@ function SingleChat() {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Optimistic UI
       const isImage = file.type.startsWith("image/");
       const optimisticMsg = {
         _id: tempId,
@@ -368,7 +549,7 @@ function SingleChat() {
       
       const serverFileMsg = {
         ...optimisticMsg,
-        _id: tempId, // Keep tempId for replacement logic
+        _id: tempId,
         fileUrl: res.data.url,
         fileType: res.data.resource_type === "image" ? "image" : "document",
         fileName: res.data.original_name,
@@ -376,13 +557,11 @@ function SingleChat() {
       };
 
       socket.emit("sendMessage", serverFileMsg);
-      
-      // Update local message state from "uploading" to "sent"
       setMessages(prev => prev.map(m => m._id === tempId ? { ...m, status: "sent", fileUrl: res.data.url } : m));
 
     } catch (err) {
       console.error("File upload error:", err);
-      alert("Failed to upload file. Please try again.");
+      alert("Failed to upload file.");
       setMessages((prev) => prev.filter(m => m._id !== tempId));
     } finally {
       setIsUploading(false);
@@ -396,72 +575,95 @@ function SingleChat() {
     }
   };
 
+  // FILTERED MESSAGES LIST FOR SEARCH
+  const filteredMessages = messages.filter((m) => {
+    if (!chatSearchQuery.trim()) return true;
+    return m.content?.toLowerCase().includes(chatSearchQuery.toLowerCase());
+  });
+
   if (!user || !user._id) {
     return <div className="h-[100dvh] bg-[#0a0a0a] flex justify-center items-center text-white"><h2 className="text-xl">Loading...</h2></div>;
   }
 
   return (
-    <div className="flex flex-col h-[100dvh] max-w-full bg-[#0a0a0a] text-white overflow-hidden relative">
-      {/* SERVER STATUS DOT */}
-      {isWindows ? (
-        <>
-          {!isServerReady && (
-            <div className="absolute top-4 right-16 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm animate-pulse">
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest whitespace-nowrap">Waking...</span>
-            </div>
-          )}
-          {isServerReady && (
-            <div className="absolute top-4 right-16 flex items-center gap-2 px-3 py-1.5 bg-black/40 border border-[#27272a] rounded-full z-[100] backdrop-blur-sm">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-[#444]">Ready</span>
-            </div>
-          )}
-        </>
-      ) : (
-        <>
-          {!isServerReady ? (
-            <div className="absolute top-4 right-16 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md animate-pulse">
-              <div className="w-1.5 h-1.5 bg-red-500 rounded-full shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
-              <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Waking...</span>
-            </div>
-          ) : (
-            <div className="absolute top-4 right-16 flex items-center gap-2 px-2 py-1 bg-white/5 border border-white/10 rounded-full z-[100] backdrop-blur-md">
-              <div className="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_rgba(34,197,94,0.5)]"></div>
-              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest text-[#444]">Ready</span>
-            </div>
-          )}
-        </>
-      )}
-
+    <div className="flex flex-col h-full w-full bg-[#0b141a] text-white overflow-hidden relative font-sans">
+      
       {/* HEADER */}
-      <div className="bg-[#0a0a0a] px-4 py-3 flex gap-4 items-center border-b border-[#27272a] flex-shrink-0">
-        <button 
-          onClick={() => navigate("/chat")}
-          className="hover:bg-[#18181b] p-2 rounded-full transition text-gray-400 hover:text-white"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-          </svg>
-        </button>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#18181b] border border-[#27272a] flex items-center justify-center overflow-hidden">
-             {targetPic ? (
-               <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
-             ) : (
-               <span className="font-bold">{targetName[0]?.toUpperCase()}</span>
-             )}
-          </div>
+      <div className="bg-[#202c33] px-4 py-3.5 flex items-center justify-between border-b border-zinc-900 flex-shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+        <div className="flex gap-4 items-center">
+          {/* Back button hidden on desktop when split screen */}
+          <button 
+            onClick={() => navigate("/chat")}
+            className="md:hidden hover:bg-[#2a3942] p-2 rounded-full transition text-[#8696a0] hover:text-white"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[#111b21] border border-zinc-800 flex items-center justify-center overflow-hidden">
+               {targetPic ? (
+                 <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
+               ) : (
+                 <span className="font-bold text-white/80">{targetName[0]?.toUpperCase()}</span>
+               )}
+            </div>
 
-          <div>
-             <h2 className="text-base font-semibold">{targetName}</h2>
-             <p className="text-xs text-gray-500">{isAllowed ? 'Connected' : 'Looking for connection'}</p>
+            <div>
+               <h2 className="text-[15px] font-semibold text-[#e9edef] tracking-tight">{targetName}</h2>
+               {isTargetTyping ? (
+                 <p className="text-xs text-[#00a884] font-bold animate-pulse">typing...</p>
+               ) : (
+                 <p className="text-[11px] text-[#8696a0] font-medium">{isAllowed ? 'online' : 'click for info'}</p>
+               )}
+            </div>
           </div>
         </div>
+
+        {/* SEARCH & ACTIONS */}
+        {isAllowed && (
+          <div className="flex items-center gap-1">
+            <button 
+              onClick={() => {
+                setIsSearching(!isSearching);
+                setChatSearchQuery("");
+              }}
+              className={`p-2 rounded-full transition ${isSearching ? "text-white bg-[#2a3942]" : "text-[#8696a0] hover:text-white hover:bg-[#2a3942]"}`}
+              title="Search chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </div>
+        )}
       </div>
 
+      {/* SEARCH BAR INPUT OVERLAY */}
+      {isSearching && (
+        <div className="px-4 py-2.5 border-b border-zinc-950 bg-[#111b21] flex gap-2 items-center z-10 animate-slideDown">
+          <input
+            type="text"
+            placeholder="Search in this conversation..."
+            value={chatSearchQuery}
+            onChange={(e) => setChatSearchQuery(e.target.value)}
+            className="flex-1 bg-[#202c33] border-none rounded-xl px-4 py-2 text-sm text-white placeholder-[#8696a0] focus:outline-none focus:ring-0"
+            autoFocus
+          />
+          <button 
+            onClick={() => {
+              setIsSearching(false);
+              setChatSearchQuery("");
+            }}
+            className="text-xs font-bold text-[#8696a0] uppercase hover:text-white transition px-2 py-2"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {loadingStatus ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#0b141a]">
            <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
            <h2 className="text-xl font-medium tracking-tight">
              {isWakingUp ? "Server is waking up..." : "Loading chat..."}
@@ -469,50 +671,56 @@ function SingleChat() {
            {isWakingUp && <p className="text-[#8e8e93] text-sm italic">This may take a minute on cold starts.</p>}
         </div>
       ) : !isAllowed ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0a0a0a]">
-          <div className="w-16 h-16 bg-[#121212] border border-[#27272a] rounded-2xl flex items-center justify-center mb-6 shadow-xl">
-             <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0b141a]">
+          <div className="w-16 h-16 bg-[#202c33] border border-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
+             <svg className="w-8 h-8 text-[#8696a0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
              </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2 text-white">Chat Locked</h2>
-          <p className="text-gray-400 text-sm max-w-sm">
+          <h2 className="text-xl font-bold mb-2 text-[#e9edef]">Chat Locked</h2>
+          <p className="text-[#8696a0] text-sm max-w-sm">
              You need to be connected with this user to start chatting. Send an invite from the Discover tab, or ask them to accept yours.
           </p>
           <button 
              onClick={() => navigate('/chat')}
-             className="mt-6 px-6 py-2 bg-white text-black font-semibold rounded hover:bg-gray-200 transition"
+             className="mt-6 px-6 py-2 bg-[#00a884] text-white font-semibold rounded-xl hover:bg-[#008f72] transition md:hidden"
           >
              Return to Messages
           </button>
         </div>
       ) : (
         <>
-          {/* CHAT */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-transparent scrollbar-thin scrollbar-thumb-[#27272a]">
-            {messages.length === 0 ? (
+          {/* CHAT MESSAGES BODY */}
+          <div 
+            className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 relative select-none"
+            style={{ 
+              backgroundColor: "#0b141a",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.007' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm1-61c3.16 0 5.72-2.56 5.72-5.72 0-3.16-2.56-5.72-5.72-5.72-3.16 0-5.72 2.56-5.72 5.72 0 3.16 2.56 5.72 5.72 5.72zm52-3c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-4 49c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-39 16c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-28-57c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm67 33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM8 77c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm25-33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm21-32c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-19 32c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm26 38c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-9-54c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm36 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-49 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-24-44c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm80-80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm-40-40c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z'/%3E%3C/g%3E%3C/svg%3E")`
+            }}
+          >
+            {filteredMessages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <div className="bg-[#121212] border border-[#27272a] rounded-xl p-4 text-center max-w-xs text-sm text-gray-400 shadow-xl">
-                  Connection established. Send a message to start the conversation.
+                <div className="bg-[#202c33] border border-zinc-800 rounded-xl p-4 text-center max-w-xs text-sm text-[#8696a0] shadow-xl">
+                  {chatSearchQuery ? "No matching messages found." : "Connection established. Send a message to start the conversation."}
                 </div>
               </div>
             ) : (
               <>
-                {messages.map((msg, i) => {
+                {filteredMessages.map((msg, i) => {
                   const isMe = msg.sender === user._id;
 
                   return (
                     <div
-                      key={i}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group`}
+                      key={msg._id || i}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group mb-2.5`}
                       onMouseEnter={() => setHoveredMessageId(msg._id)}
                       onMouseLeave={() => setHoveredMessageId(null)}
                     >
                       {/* REACTION PICKER TRIGGER (SMILEY) */}
-                      {hoveredMessageId === msg._id && !isMe && (
+                      {hoveredMessageId === msg._id && !isMe && !msg.isDeleted && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
-                          className="p-1 text-gray-400 hover:text-white transition-opacity duration-200"
+                          className="p-1 text-[#8696a0] hover:text-white transition-opacity duration-200 mr-2"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -521,7 +729,7 @@ function SingleChat() {
                       )}
 
                       {/* REACTION PICKER */}
-                      {showPickerFor === msg._id && (
+                      {showPickerFor === msg._id && !msg.isDeleted && (
                         <div 
                           onClick={(e) => e.stopPropagation()}
                           className={`
@@ -543,52 +751,55 @@ function SingleChat() {
                       )}
 
                       <div 
-                        onClick={() => setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
+                        onClick={() => !msg.isDeleted && setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
                         className={`
-                          cursor-pointer transition-all relative group/bubble
-                          ${isMe ? "bg-white text-black rounded-tr-sm" : "bg-[#18181b] border border-[#27272a] text-white rounded-tl-sm"} 
-                          px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-sm font-medium text-sm
-                          ${msg.messageType === "file" && msg.fileType === "image" ? "!p-1 !overflow-hidden" : ""}
+                          transition-all relative group/bubble select-text
+                          ${msg.isDeleted 
+                            ? "bg-[#182229] border border-zinc-900 text-zinc-500 rounded-2xl p-3 max-w-[85%] italic text-[13.5px]"
+                            : isMe 
+                              ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none px-3.5 py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] font-normal text-[14.5px]" 
+                              : "bg-[#202c33] text-[#e9edef] rounded-tl-none px-3.5 py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] font-normal text-[14.5px]"
+                          } 
+                          ${msg.messageType === "file" && msg.fileType === "image" && !msg.isDeleted ? "!p-1 !overflow-hidden" : ""}
+                          animate-message
                         `}
                       >
-                        {/* SMILEY BUTTON INSIDE FOR ME */}
-                        {isMe && hoveredMessageId === msg._id && (
-                          <div 
-                            className="absolute -left-8 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
-                          >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                        {/* TRASH ICON FOR MESSAGE DELETION */}
+                        {isMe && hoveredMessageId === msg._id && !msg.isDeleted && (
+                          <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                            <button 
+                              onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg._id); }}
+                              className="p-1.5 text-[#8696a0] hover:text-red-500 rounded-full hover:bg-red-500/10 transition"
+                              title="Delete for everyone"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                            <button 
+                              className="p-1.5 text-[#8696a0] hover:text-white rounded-full hover:bg-[#202c33] transition"
+                              onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
                           </div>
                         )}
-                        {!isMe && (
-                          <p className={`text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
+
+                        {!isMe && !msg.isDeleted && (
+                          <p className={`text-[10px] text-[#00a884] mb-0.5 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
                             {msg.senderName}
                           </p>
                         )}
 
-                        {msg.messageType === "voice" ? (
-                          <div className="flex items-center gap-3 min-w-[200px] py-1">
-                            <button 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const audio = new Audio(msg.voiceUrl);
-                                audio.play();
-                              }}
-                              className={`w-10 h-10 rounded-full flex items-center justify-center transition shadow-sm ${isMe ? 'bg-black text-white hover:bg-zinc-800' : 'bg-white text-black hover:bg-gray-100'}`}
-                            >
-                              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 5v14l11-7z" />
-                              </svg>
-                            </button>
-                            <div className="flex-1 flex flex-col gap-1">
-                              <div className={`h-1 rounded-full overflow-hidden ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
-                                <div className={`h-full w-1/3 ${isMe ? 'bg-black/40' : 'bg-white/40'}`}></div>
-                              </div>
-                              <span className={`text-[10px] font-bold ${isMe ? 'text-black/50' : 'text-white/50'}`}>Voice Message</span>
-                            </div>
+                        {msg.isDeleted ? (
+                          <div className="flex items-center gap-2 select-none">
+                            <span className="text-[12px]">🚫</span>
+                            <span>This message was deleted</span>
                           </div>
+                        ) : msg.messageType === "voice" ? (
+                          <VoicePlayer voiceUrl={msg.voiceUrl} isMe={isMe} />
                         ) : msg.messageType === "file" ? (
                            <div className="min-w-[150px]">
                               {msg.fileType === "image" ? (
@@ -602,7 +813,7 @@ function SingleChat() {
                                     <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white">
                                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                        {isMe && (
-                                          <span className={msg.status === "read" ? "text-blue-400" : "text-white/70"}>
+                                          <span className={msg.status === "read" ? "text-[#53bdeb]" : "text-white/70"}>
                                              {msg.status === "sent" ? "✓" : msg.status === "delivered" ? "✓✓" : "✓✓"}
                                           </span>
                                        )}
@@ -611,17 +822,17 @@ function SingleChat() {
                               ) : (
                                  <div className="flex items-center gap-3 p-1">
                                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
-                                       <svg className={`w-6 h-6 ${isMe ? 'text-black/60' : 'text-white/60'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                       <svg className={`w-6 h-6 ${isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                        </svg>
                                     </div>
                                     <div className="flex-1 overflow-hidden">
-                                       <p className="text-xs font-bold truncate pr-2">{msg.fileName || "Document"}</p>
+                                       <p className="text-xs font-bold truncate pr-2 text-[#e9edef]">{msg.fileName || "Document"}</p>
                                        <a 
                                          href={msg.fileUrl} 
                                          target="_blank" 
                                          rel="noopener noreferrer" 
-                                         className={`text-[10px] font-black uppercase tracking-widest hover:underline ${isMe ? 'text-black/40' : 'text-white/40'}`}
+                                         className={`text-[10px] font-black uppercase tracking-widest hover:underline ${isMe ? 'text-[#e9edef]/40' : 'text-[#8696a0]'}`}
                                          onClick={(e) => e.stopPropagation()}
                                        >
                                          Download
@@ -631,11 +842,12 @@ function SingleChat() {
                               )}
                            </div>
                         ) : (
-                          <p className="break-words leading-relaxed">{msg.content}</p>
+                          <p className="break-words leading-relaxed whitespace-pre-line">{msg.content}</p>
                         )}
 
-                        {msg.messageType !== "file" || msg.fileType !== "image" ? (
-                           <div className={`text-[10px] flex gap-1 justify-end mt-1.5 ${isMe ? 'opacity-50' : 'opacity-40'}`}>
+                        {/* TIME & DELIVERY STATUS */}
+                        {(!msg.messageType || msg.messageType !== "file" || msg.fileType !== "image" || msg.isDeleted) ? (
+                           <div className={`text-[9px] flex gap-1 justify-end items-center mt-1 select-none ${msg.isDeleted ? 'text-zinc-600' : isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}`}>
                              <span>
                                {new Date(msg.createdAt).toLocaleTimeString([], {
                                  hour: "2-digit",
@@ -643,30 +855,30 @@ function SingleChat() {
                                })}
                              </span>
 
-                             {isMe && (
-                               <>
+                             {isMe && !msg.isDeleted && (
+                               <span className="text-[11px] font-semibold leading-none">
                                  {msg.status === "sent" && "✓"}
                                  {msg.status === "delivered" && "✓✓"}
-                                 {msg.status === "read" && <span className="text-blue-600">✓✓</span>}
-                               </>
+                                 {msg.status === "read" && <span className="text-[#53bdeb]">✓✓</span>}
+                               </span>
                              )}
                            </div>
                         ) : null}
 
                         {/* DISPLAY REACTIONS */}
-                        {msg.reactions && msg.reactions.length > 0 && (
+                        {msg.reactions && msg.reactions.length > 0 && !msg.isDeleted && (
                           <div className={`
-                            absolute -bottom-4 flex -space-x-1 items-center z-10
+                            absolute -bottom-4 flex -space-x-1 items-center z-10 select-none
                             ${isMe ? 'right-2' : 'left-2'}
                           `}>
                             <div className="flex bg-[#202023] border border-[#2d2d30] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
                               {msg.reactions.map((r, idx) => (
-                                <span key={idx} className="text-[14px]">
+                                <span key={idx} className="text-[12px]">
                                   {r.emoji}
                                 </span>
                               ))}
                               {msg.reactions.length > 1 && (
-                                <span className="ml-1 text-[10px] text-gray-400 font-bold flex items-center">
+                                <span className="ml-1 text-[9px] text-[#8696a0] font-bold flex items-center">
                                   {msg.reactions.length}
                                 </span>
                               )}
@@ -682,21 +894,21 @@ function SingleChat() {
             )}
           </div>
 
-          {/* INPUT */}
-          <div className="p-4 bg-[#0a0a0a] border-t border-[#27272a]">
+          {/* CHAT INPUT FORM */}
+          <div className="p-3 bg-[#111b21] z-10 border-t border-zinc-950">
             {isRecording ? (
-              <div className="flex items-center gap-4 bg-[#121212] rounded-full px-6 py-3 border border-red-500/30 animate-pulse">
+              <div className="flex items-center gap-4 bg-[#202c33] rounded-full px-6 py-3 border border-red-500/20 animate-pulse">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full"></div>
-                  <span className="text-sm font-medium">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
+                  <span className="text-sm font-medium text-[#e9edef]">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
                 </div>
                 <button 
                   onClick={cancelRecording}
-                  className="text-gray-400 hover:text-white text-xs font-bold uppercase tracking-wider"
+                  className="text-[#8696a0] hover:text-white text-xs font-bold uppercase tracking-wider"
                 >
                   Cancel
                 </button>
-                <div className="w-px h-6 bg-gray-800"></div>
+                <div className="w-px h-6 bg-zinc-800"></div>
                 <button 
                   onClick={stopRecording}
                   className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20"
@@ -707,8 +919,7 @@ function SingleChat() {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2 relative items-center">
-                {/* 📎 ATTACHMENT BUTTON */}
+              <div className="flex gap-2.5 relative items-center max-w-6xl mx-auto select-none">
                 <input 
                    type="file" 
                    ref={fileInputRef} 
@@ -719,7 +930,7 @@ function SingleChat() {
                 <button
                   onClick={() => fileInputRef.current.click()}
                   disabled={isUploading}
-                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition ${isUploading ? 'opacity-50' : 'text-gray-400 hover:text-white hover:bg-zinc-800'}`}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition ${isUploading ? 'opacity-50' : 'text-[#8696a0] hover:text-white hover:bg-[#202c33]'}`}
                 >
                   {isUploading ? (
                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -732,28 +943,28 @@ function SingleChat() {
 
                 <input
                   value={message}
-                  onChange={(e) => setMessage(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder={isUploading ? "Uploading file..." : "Type your message..."}
+                  placeholder={isUploading ? "Uploading file..." : "Type a message"}
                   disabled={isUploading}
-                  className="flex-1 px-5 py-3 rounded-full bg-[#121212] border border-[#27272a] text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 transition"
+                  className="flex-1 px-5 py-3 rounded-xl bg-[#2a3942] border-none text-[#e9edef] placeholder-[#8696a0] focus:outline-none focus:ring-0 text-sm transition"
                 />
 
                 {!message.trim() ? (
                   <button
                     onClick={startRecording}
-                    className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 transition"
+                    className="bg-transparent hover:bg-[#202c33] text-[#8696a0] hover:text-white w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </button>
                 ) : (
                   <button
                     onClick={sendMessage}
-                    className="bg-white hover:bg-gray-200 w-12 h-12 rounded-full text-black flex items-center justify-center flex-shrink-0 transition"
+                    className="bg-[#00a884] hover:bg-[#008f72] w-11 h-11 rounded-full text-white flex items-center justify-center flex-shrink-0 transition shadow-md"
                   >
-                    <svg className="w-5 h-5 ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                   </button>
@@ -763,6 +974,17 @@ function SingleChat() {
           </div>
         </>
       )}
+
+      {/* ANIMATION KEYFRAMES & STYLING */}
+      <style>{`
+        @keyframes messageFadeIn {
+          from { opacity: 0; transform: translateY(6px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-message {
+          animation: messageFadeIn 0.18s cubic-bezier(0.1, 1, 0.1, 1) forwards;
+        }
+      `}</style>
     </div>
   );
 }

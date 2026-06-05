@@ -1,4 +1,4 @@
-require("dotenv").config();
+require("dotenv").config({ override: true });
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
@@ -43,11 +43,26 @@ requiredEnvs.forEach(env => {
 // ✅ ROUTES
 const authRoutes = require("./routes/authRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
+const statusRoutes = require("./routes/statusRoutes");
 app.use("/api/auth", authRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/status", statusRoutes);
 
 // ✅ HEALTH CHECK (for pre-warming Render)
 app.get("/api/health", (req, res) => res.status(200).send("OK"));
+
+// ✅ DB STATUS CHECK (diagnostic endpoint)
+app.get("/api/db-status", (req, res) => {
+  const state = mongoose.connection.readyState;
+  const stateMap = { 0: "disconnected", 1: "connected", 2: "connecting", 3: "disconnecting" };
+  const status = stateMap[state] || "unknown";
+  const isConnected = state === 1;
+  res.status(isConnected ? 200 : 503).json({
+    database: status,
+    mongoUri: process.env.MONGO_URI ? process.env.MONGO_URI.replace(/\/\/.*@/, "//***:***@") : "NOT SET",
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // ✅ GET USERS
 app.get("/api/users", async (req, res) => {
@@ -174,6 +189,7 @@ io.on("connection", (socket) => {
   // 🔥 SETUP USER
   socket.on("setup", (userId) => {
     users[userId] = socket.id;
+    io.emit("onlineUsers", Object.keys(users));
   });
 
   // 🔥 SEND MESSAGE
@@ -257,6 +273,52 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 🔥 TYPING STATUS
+  socket.on("typing", ({ sender, receiver }) => {
+    const receiverSocket = users[receiver];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("typing", { sender });
+    }
+  });
+
+  socket.on("stopTyping", ({ sender, receiver }) => {
+    const receiverSocket = users[receiver];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("stopTyping", { sender });
+    }
+  });
+
+  // 🔥 DELETE MESSAGE
+  socket.on("deleteMessage", async ({ messageId, userId }) => {
+    try {
+      const msg = await Message.findById(messageId);
+      if (!msg) return;
+
+      // Ensure only sender can delete for everyone
+      if (msg.sender !== userId) return;
+
+      msg.isDeleted = true;
+      msg.content = "This message was deleted";
+      msg.voiceUrl = null;
+      msg.fileUrl = null;
+      msg.fileType = null;
+      msg.fileName = null;
+      await msg.save();
+
+      const receiverSocket = users[msg.receiver];
+      const senderSocket = users[msg.sender];
+
+      if (receiverSocket) {
+        io.to(receiverSocket).emit("messageDeleted", { messageId });
+      }
+      if (senderSocket) {
+        io.to(senderSocket).emit("messageDeleted", { messageId });
+      }
+    } catch (err) {
+      console.error("Error deleting message:", err);
+    }
+  });
+
   // 🔥 CONNECTIONS INVITES
   socket.on("sendInvite", (data) => {
     const receiverSocket = users[data.receiver];
@@ -284,6 +346,7 @@ io.on("connection", (socket) => {
         delete users[key];
       }
     }
+    io.emit("onlineUsers", Object.keys(users));
   });
 });
 
