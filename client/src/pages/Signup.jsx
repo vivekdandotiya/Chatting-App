@@ -391,10 +391,9 @@ function Signup() {
         disabled={loading || !agreeTerms}
         className="w-full py-3.5 mt-4 rounded-xl font-bold text-black text-[15px]
                    bg-gradient-to-r from-emerald-500 to-teal-400
-                   hover:brightness-110 active:brightness-95
+                   hover:opacity-90 active:scale-[0.98]
                    disabled:opacity-50 disabled:cursor-not-allowed
-                   transition-all duration-300
-                   shadow-[0_0_24px_rgba(16,185,129,0.25)]
+                   transition-all duration-200
                    flex items-center justify-center gap-2.5"
       >
         {loading ? (
@@ -444,10 +443,9 @@ function Signup() {
           disabled={loading || otp.length < 6}
           className="w-full py-4 rounded-xl font-bold text-black text-[15px]
                      bg-gradient-to-r from-emerald-500 to-teal-400
-                     hover:brightness-110 active:brightness-95
+                     hover:opacity-90 active:scale-[0.98]
                      disabled:opacity-50 disabled:cursor-not-allowed
-                     transition-all duration-300
-                     shadow-[0_0_24px_rgba(16,185,129,0.25)]
+                     transition-all duration-200
                      flex items-center justify-center gap-2"
         >
           {loading ? (
@@ -559,14 +557,8 @@ function Signup() {
 
             {/* HEADER */}
             <div className="mb-8 flex flex-col items-center text-center">
-              <div
-                className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
-                style={{
-                  background: "#fff",
-                  animation: "signupPulseGlow 3s ease-in-out infinite",
-                }}
-              >
-                <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 overflow-hidden bg-[#161616] border border-[#2a2a2a]">
+                <img src="/fevicon.png" alt="Logo" className="w-10 h-10 object-contain" />
               </div>
               <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
                 {step === 1 ? "Create Account" : "Verify Email"}
@@ -621,15 +613,7 @@ function Signup() {
       >
         {/* HEADER */}
         <div className="mb-8 flex flex-col items-center text-center">
-          <div
-            className="w-13 h-13 rounded-2xl flex items-center justify-center mb-5 overflow-hidden"
-            style={{
-              width: 52,
-              height: 52,
-              background: "#fff",
-              animation: "signupPulseGlow 3s ease-in-out infinite",
-            }}
-          >
+          <div className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-5 overflow-hidden bg-[#161616] border border-[#2a2a2a]">
             <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
           </div>
           <h1 className="text-[28px] font-extrabold text-white tracking-tight leading-none">
