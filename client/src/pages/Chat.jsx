@@ -1,52 +1,72 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import SingleChat from "./SingleChat";
+import GameZone from "../components/GameZone";
 import io from "socket.io-client";
 
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 export { socket };
 
-const VartaHome = () => (
-  <div className="flex-1 h-full bg-[#0c0c0c] flex flex-col items-center justify-center text-center p-8 select-none relative">
-    {/* Grid Background Effect */}
-    <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808002_1px,transparent_1px),linear-gradient(to_bottom,#80808002_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none"></div>
-    
-    <div className="max-w-md z-10 flex flex-col items-center animate-fadeIn">
-      {/* Varta Premium Logo */}
-      <div className="w-32 h-32 rounded-[2.5rem] bg-[#161616] border border-[#2a2a2a] flex items-center justify-center mb-8 shadow-2xl relative group overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
-        <img src="/fevicon.png" alt="Logo" className="w-16 h-16 object-cover relative z-10 filter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]" />
-      </div>
+const VartaHome = () => {
+  const handleOpenGameZone = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.set("game", "list");
+    window.history.pushState({}, "", `${window.location.pathname}?${searchParams.toString()}`);
+    window.dispatchEvent(new Event("popstate"));
+  };
+
+  return (
+    <div className="flex-1 h-full bg-[#0c0c0c] flex flex-col items-center justify-center text-center p-8 select-none relative">
+      {/* Grid Background Effect */}
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808003_1px,transparent_1px),linear-gradient(to_bottom,#80808003_1px,transparent_1px)] bg-[size:14px_24px] pointer-events-none"></div>
       
-      <h2 className="text-3xl font-black tracking-tight text-white mb-3 flex items-center gap-2">
-        <span>Welcome to</span>
-        <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">Varta</span>
-      </h2>
-      <p className="text-zinc-500 text-sm leading-relaxed mb-8 max-w-sm">
-        Connect instantly with friends. Send real-time messages, share moments via status updates, and enjoy secure messaging in a premium dark experience.
-      </p>
-      
-      <div className="flex items-center gap-2.5 text-[10px] text-zinc-500 font-extrabold uppercase tracking-widest bg-[#111111] border border-[#2a2a2a] px-4 py-2.5 rounded-xl shadow-inner">
-        <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-        </svg>
-        <span>End-to-end secure connection</span>
+      <div className="max-w-md z-10 flex flex-col items-center animate-fadeIn">
+        {/* Varta Premium Logo */}
+        <div className="w-32 h-32 rounded-[2.5rem] bg-[#161616] border border-[#2a2a2a] flex items-center justify-center mb-8 shadow-2xl relative group overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 opacity-50 group-hover:opacity-100 transition-opacity"></div>
+          <img src="/fevicon.png" alt="Logo" className="w-16 h-16 object-cover relative z-10 filter drop-shadow-[0_0_15px_rgba(16,185,129,0.3)]" />
+        </div>
+        
+        <h2 className="text-3xl font-black tracking-tight text-white mb-3 flex items-center gap-2">
+          <span>Welcome to</span>
+          <span className="bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">Varta</span>
+        </h2>
+        <p className="text-zinc-500 text-sm leading-relaxed mb-6 max-w-sm">
+          Connect instantly with friends. Send real-time messages, share moments via status updates, or play interactive games in our brand new Game Zone!
+        </p>
+
+        <button 
+          onClick={handleOpenGameZone}
+          className="mb-8 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/10 flex items-center gap-2"
+        >
+          🎮 Open Game Zone
+        </button>
+        
+        <div className="flex items-center gap-2.5 text-[10px] text-zinc-500 font-extrabold uppercase tracking-widest bg-[#111111] border border-[#2a2a2a] px-4 py-2.5 rounded-xl shadow-inner">
+          <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+          <span>End-to-end secure connection</span>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 function Chat() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [unread, setUnread] = useState({});
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isServerReady, setIsServerReady] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
+
+  const [activeGame, setActiveGame] = useState(new URLSearchParams(window.location.search).get("game"));
 
   const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
@@ -63,18 +83,23 @@ function Chat() {
     wakeServer();
   }, []);
 
-  const appMode = sessionStorage.getItem("appMode") || "phone";
-  const isWindows = appMode === "windows";
+  useEffect(() => {
+    const handlePopState = () => {
+      setActiveGame(new URLSearchParams(window.location.search).get("game"));
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
 
-  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768 && appMode !== "phone");
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 
   useEffect(() => {
     const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 768 && appMode !== "phone");
+      setIsDesktop(window.innerWidth >= 768);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [appMode]);
+  }, []);
 
   useEffect(() => {
     let timer;
@@ -157,6 +182,13 @@ function Chat() {
 
   }, [id]);
 
+  const handleCloseGame = () => {
+    const searchParams = new URLSearchParams(window.location.search);
+    searchParams.delete("game");
+    navigate(`/chat${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
+    setActiveGame(null);
+  };
+
   if (loading) {
     return (
       <div className="h-[100dvh] bg-[#0c0c0c] flex flex-col items-center justify-center text-white gap-5">
@@ -177,21 +209,11 @@ function Chat() {
 
   // STATUS DOT COMPONENT
   const renderServerStatusDot = () => {
-    if (isWindows) {
-      return (
-        <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full z-[100] backdrop-blur-sm">
-          <div className={`w-2 h-2 ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"} rounded-full`}></div>
-          <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap">
-            {isServerReady ? "Server Ready" : "Server Waking..."}
-          </span>
-        </div>
-      );
-    }
     return (
-      <div className="absolute top-6 right-6 flex items-center gap-2 px-2 py-1 bg-emerald-950/30 border border-emerald-500/10 rounded-full z-[100] backdrop-blur-md">
-        <div className={`w-1.5 h-1.5 ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"} rounded-full`}></div>
-        <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">
-          {isServerReady ? "Ready" : "Waking..."}
+      <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full z-[100] backdrop-blur-sm">
+        <div className={`w-2 h-2 ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"} rounded-full`}></div>
+        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap">
+          {isServerReady ? "Server Ready" : "Server Waking..."}
         </span>
       </div>
     );
@@ -215,12 +237,22 @@ function Chat() {
             />
           </div>
           <div className="flex-1 h-full relative">
-            {id ? <SingleChat key={id} /> : <VartaHome />}
+            {activeGame ? (
+              <GameZone game={activeGame} />
+            ) : id ? (
+              <SingleChat key={id} />
+            ) : (
+              <VartaHome />
+            )}
           </div>
         </div>
       ) : (
-        // MOBILE / PHONE SIMULATOR SINGLE COLUMN VIEW
-        id ? <SingleChat /> : (
+        // MOBILE / SINGLE COLUMN VIEW
+        activeGame ? (
+          <GameZone game={activeGame} onClose={handleCloseGame} />
+        ) : id ? (
+          <SingleChat />
+        ) : (
           <Sidebar
             users={users}
             unread={unread}

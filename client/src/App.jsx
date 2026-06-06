@@ -4,13 +4,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Chat from "./pages/Chat";
-import SingleChat from "./pages/SingleChat";
-import PhoneWrapper from "./components/PhoneWrapper";
-import ExperienceGateway from "./components/ExperienceGateway";
 
 function App() {
-  const [appMode, setAppMode] = useState(sessionStorage.getItem('appMode'));
-
   const [isServerReady, setIsServerReady] = useState(false);
 
   useEffect(() => {
@@ -26,7 +21,6 @@ function App() {
     };
     
     wakeServer();
-    // Re-ping every 10s if not ready
     const interval = setInterval(() => {
       if (!isServerReady) wakeServer();
     }, 10000);
@@ -34,40 +28,19 @@ function App() {
     return () => clearInterval(interval);
   }, [isServerReady]);
 
-
-  const handleSetMode = (mode) => {
-    sessionStorage.setItem('appMode', mode);
-    setAppMode(mode);
-  };
-
-  if (!appMode) {
-    return <ExperienceGateway setMode={handleSetMode} />;
-  }
-
-  const routerContent = (
-    <Routes>
-      <Route path="/" element={<Login />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/chat" element={<Chat />} />
-      <Route path="/chat/:id" element={<Chat />} />
-    </Routes>
-  );
-
   return (
     <BrowserRouter>
-      {appMode === "phone" ? (
-        <PhoneWrapper>
-          {routerContent}
-        </PhoneWrapper>
-      ) : (
-        <div className="w-full min-h-[100dvh]">
-          {routerContent}
-        </div>
-      )}
+      <div className="w-full min-h-[100dvh] bg-[#0c0c0c] text-white">
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/chat" element={<Chat />} />
+          <Route path="/chat/:id" element={<Chat />} />
+        </Routes>
+      </div>
     </BrowserRouter>
   );
 }
-
 
 export default App;

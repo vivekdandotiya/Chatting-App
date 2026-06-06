@@ -169,11 +169,17 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
           { id: "chats", label: `Chats`, count: friends.length },
           { id: "status", label: "Status", count: stories.length },
           { id: "invites", label: "Invites", count: invites.length },
-          { id: "discover", label: "Discover", count: 0 }
+          { id: "discover", label: "Discover", count: 0 },
+          { id: "games", label: "Games", count: 0 }
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
+            onClick={() => {
+              setActiveTab(tab.id);
+              if (tab.id === "games") {
+                navigate("/chat");
+              }
+            }}
             className={`px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 flex-shrink-0 border flex items-center gap-1.5 ${
               activeTab === tab.id
                 ? "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.05)]"
@@ -447,6 +453,37 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                 </div>
               ))
             )}
+          </div>
+        )}
+
+        {/* GAMES TAB */}
+        {activeTab === "games" && (
+          <div className="animate-fadeIn">
+            {[
+              { id: "chess", name: "Tactical Chess", desc: "Interactive board game" },
+              { id: "racing", name: "Nitro Racer", desc: "Canvas lane racer" },
+              { id: "tictactoe", name: "Criss Cross", desc: "Tic Tac Toe with AI" },
+              { id: "puzzle", name: "2048 Puzzle", desc: "Sliding tile merger" }
+            ].map((gameItem) => (
+              <div 
+                key={gameItem.id}
+                onClick={() => {
+                  const searchParams = new URLSearchParams(window.location.search);
+                  searchParams.set("game", gameItem.id);
+                  navigate(`/chat?${searchParams.toString()}`);
+                }}
+                className="flex items-center gap-4 p-3.5 rounded-2xl cursor-pointer hover:bg-[#161616]/40 border border-transparent hover:border-[#2a2a2a]/30 mb-2 group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-all text-lg">
+                  🎮
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-bold text-sm truncate">{gameItem.name}</h3>
+                  <p className="text-zinc-500 text-xs truncate">{gameItem.desc}</p>
+                </div>
+                <span className="text-[10px] font-black tracking-widest text-emerald-400 group-hover:translate-x-0.5 transition-transform uppercase">Play</span>
+              </div>
+            ))}
           </div>
         )}
       </div>

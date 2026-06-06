@@ -25,10 +25,6 @@ if (typeof document !== "undefined" && !document.getElementById(styleId)) {
       50%  { background-position: 100% 50%; }
       100% { background-position: 0% 50%;   }
     }
-    @keyframes signupPulseGlow {
-      0%, 100% { box-shadow: 0 0 18px 2px rgba(16,185,129,0.25); }
-      50%      { box-shadow: 0 0 28px 6px rgba(16,185,129,0.40); }
-    }
     @keyframes signupShakeError {
       0%, 100% { transform: translateX(0); }
       20%      { transform: translateX(-6px); }
@@ -173,9 +169,6 @@ function Signup() {
     }
     return () => clearTimeout(timer);
   }, [loading]);
-
-  const appMode = sessionStorage.getItem("appMode") || "phone";
-  const isWindows = appMode === "windows";
 
   const checkPasswordStrength = (pass) => {
     let strength = 0;
@@ -531,117 +524,55 @@ function Signup() {
     </p>
   );
 
-  /* ═══════════════════════════════════════════════
-     ██  WINDOWS MODE
-     ═══════════════════════════════════════════════ */
-  if (isWindows) {
-    return (
-      <div
-        className="min-h-[100dvh] w-full flex items-center justify-center p-4 sm:p-6 relative overflow-hidden"
-        style={{ background: "#0c0c0c", fontFamily: "'Inter', sans-serif" }}
-      >
-        {/* background orbs */}
-        <BackgroundOrbs />
-
-        {/* server status */}
-        <ServerStatusBadge ready={isServerReady} />
-
-        {/* card */}
-        <div
-          className="relative z-10 w-full max-w-md"
-          style={{ animation: "signupSlideUp 0.7s cubic-bezier(.16,1,.3,1) both" }}
-        >
-          <div className="relative p-8 sm:p-10 rounded-2xl bg-[#161616] border border-[#2a2a2a] shadow-2xl overflow-hidden">
-            {/* animated gradient top line */}
-            <AnimatedGradientLine />
-
-            {/* HEADER */}
-            <div className="mb-8 flex flex-col items-center text-center">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 overflow-hidden bg-[#161616] border border-[#2a2a2a]">
-                <img src="/fevicon.png" alt="Logo" className="w-10 h-10 object-contain" />
-              </div>
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-                {step === 1 ? "Create Account" : "Verify Email"}
-              </h1>
-              <p className="text-zinc-500 text-sm mt-2.5 px-4">
-                {step === 1
-                  ? "Join Varta to start chatting with friends"
-                  : `We sent a code to ${email}`}
-              </p>
-            </div>
-
-            {/* ERROR */}
-            {error && <ErrorBanner message={error} />}
-
-            {/* STEP 1 or STEP 2 FORM */}
-            {step === 1 ? (
-              <>
-                {renderStep1Form()}
-                {renderDivider()}
-                {renderOAuth()}
-              </>
-            ) : (
-              renderStep2Form()
-            )}
-
-            {/* FOOTER */}
-            {renderFooter()}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  /* ═══════════════════════════════════════════════
-     ██  PHONE MODE  (default)
-     ═══════════════════════════════════════════════ */
   return (
-    <div
-      className="min-h-full w-full flex flex-col justify-center px-6 sm:px-8 py-8 relative overflow-hidden"
-      style={{ background: "#0c0c0c", fontFamily: "'Inter', sans-serif" }}
-    >
+    <div className="min-h-[100dvh] w-full flex items-center justify-center p-4 sm:p-6 relative overflow-hidden bg-[#0c0c0c] font-sans">
       {/* background orbs */}
       <BackgroundOrbs />
 
       {/* server status */}
       <ServerStatusBadge ready={isServerReady} />
 
-      {/* content wrapper */}
+      {/* card */}
       <div
-        className="w-full max-w-sm mx-auto flex flex-col relative z-10"
+        className="relative z-10 w-full max-w-md"
         style={{ animation: "signupSlideUp 0.7s cubic-bezier(.16,1,.3,1) both" }}
       >
-        {/* HEADER */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="w-[52px] h-[52px] rounded-2xl flex items-center justify-center mb-5 overflow-hidden bg-[#161616] border border-[#2a2a2a]">
-            <img src="/fevicon.png" alt="Logo" className="w-full h-full object-cover" />
+        <div className="relative p-8 sm:p-10 rounded-2xl bg-[#161616] border border-[#2a2a2a] shadow-2xl overflow-hidden">
+          {/* animated gradient top line */}
+          <AnimatedGradientLine />
+
+          {/* HEADER */}
+          <div className="mb-8 flex flex-col items-center text-center">
+            <div className="w-14 h-14 rounded-2xl flex items-center justify-center mb-5 overflow-hidden bg-[#161616] border border-[#2a2a2a]">
+              <img src="/fevicon.png" alt="Logo" className="w-10 h-10 object-contain" />
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
+              {step === 1 ? "Create Account" : "Verify Email"}
+            </h1>
+            <p className="text-zinc-500 text-sm mt-2.5 px-4">
+              {step === 1
+                ? "Join Varta to start chatting with friends"
+                : `We sent a code to ${email}`}
+            </p>
           </div>
-          <h1 className="text-[28px] font-extrabold text-white tracking-tight leading-none">
-            {step === 1 ? "Create Account" : "Verify Email"}
-          </h1>
-          <p className="text-zinc-500 text-[13px] mt-2.5 px-4 leading-normal">
-            {step === 1
-              ? "Join Varta to start chatting with friends"
-              : `We sent a code to your email.`}
-          </p>
+
+          {/* ERROR */}
+          {error && <ErrorBanner message={error} />}
+
+          {/* STEP 1 or STEP 2 FORM */}
+          {step === 1 ? (
+            <>
+              {renderStep1Form()}
+              {renderDivider()}
+              {renderOAuth()}
+            </>
+          ) : (
+            renderStep2Form()
+          )}
+
+          {/* FOOTER */}
+          {renderFooter()}
         </div>
-
-        {/* ERROR */}
-        {error && <ErrorBanner message={error} />}
-
-        {/* STEP 1 or STEP 2 FORM */}
-        {step === 1 ? (
-          <>
-            {renderStep1Form()}
-            {renderDivider()}
-            {renderOAuth()}
-          </>
-        ) : (
-          renderStep2Form()
-        )}
-
-        {/* FOOTER */}
-        {renderFooter()}
       </div>
     </div>
   );
