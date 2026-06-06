@@ -127,29 +127,30 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
   const myStories = stories.find(s => s.user._id === currentUser._id);
 
   return (
-    <div className="w-full h-full max-w-full bg-[#0a0a0a] flex flex-col overflow-hidden border-r border-[#27272a] font-sans relative">
+    <div className="w-full h-full max-w-full bg-[#0c0c0c] flex flex-col overflow-hidden border-r border-[#202022] font-sans relative">
       
       {/* HEADER */}
-      <div className="px-5 pt-6 pb-5 border-b border-[#27272a] flex-shrink-0 bg-[#0a0a0a] z-10">
+      <div className="px-5 pt-6 pb-5 border-b border-[#202022] flex-shrink-0 bg-[#0c0c0c] z-10">
         <div className="flex items-center justify-between mb-5">
-           <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-            Messages
+          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+            <span>Chats</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow"></span>
           </h1>
           <button 
             onClick={() => setIsProfileOpen(true)}
-            className="w-10 h-10 rounded-full border border-[#27272a] overflow-hidden bg-[#18181b] flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-[0_0_15px_rgba(255,255,255,0.05)]"
+            className="w-10 h-10 rounded-full border border-[#2a2a2a] overflow-hidden bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 flex items-center justify-center hover:scale-105 hover:border-emerald-500/50 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)]"
           >
             {currentUser?.profilePic ? (
               <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover" />
             ) : (
-              <span className="text-sm font-bold text-gray-400">{getInitials(currentUser?.name)}</span>
+              <span className="text-sm font-extrabold text-emerald-400">{getInitials(currentUser?.name)}</span>
             )}
           </button>
         </div>
 
         {/* SEARCH BAR */}
         <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -157,27 +158,36 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-[#27272a] rounded-xl text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white transition-all duration-300"
+            className="w-full pl-10 pr-4 py-3 bg-[#111111] border border-[#2a2a2a] rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
           />
         </div>
       </div>
 
       {/* TABS */}
-      <div className="px-4 pt-4 flex gap-2 border-b border-[#27272a] overflow-x-auto scrollbar-hide flex-shrink-0 pb-4 bg-[#0a0a0a]">
-        {["chats", "status", "invites", "discover"].map((tab) => (
+      <div className="px-4 pt-4 flex gap-2 border-b border-[#202022] overflow-x-auto scrollbar-hide flex-shrink-0 pb-4 bg-[#0c0c0c]">
+        {[
+          { id: "chats", label: `Chats`, count: friends.length },
+          { id: "status", label: "Status", count: stories.length },
+          { id: "invites", label: "Invites", count: invites.length },
+          { id: "discover", label: "Discover", count: 0 }
+        ].map((tab) => (
           <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 flex-shrink-0 ${
-              activeTab === tab
-                ? "bg-white text-black shadow-[0_4px_12px_rgba(255,255,255,0.2)]"
-                : "text-gray-500 hover:text-white hover:bg-[#18181b]"
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 flex-shrink-0 border flex items-center gap-1.5 ${
+              activeTab === tab.id
+                ? "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.05)]"
+                : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-[#161616]"
             }`}
           >
-            {tab === "chats" && `Chats (${friends.length})`}
-            {tab === "status" && `Status ${stories.length > 0 ? `(${stories.length})` : ''}`}
-            {tab === "invites" && `Invites ${invites.length > 0 ? `(${invites.length})` : ''}`}
-            {tab === "discover" && "Discover"}
+            <span>{tab.label}</span>
+            {tab.count > 0 && (
+              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
+                activeTab === tab.id ? "bg-emerald-400 text-black" : "bg-[#2a2a2a] text-zinc-400"
+              }`}>
+                {tab.count}
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -188,14 +198,14 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
         {activeTab === "chats" && (
           <div className="animate-fadeIn">
             {friends.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-60 text-gray-600 text-sm text-center px-8">
-                <div className="w-16 h-16 bg-[#121212] rounded-3xl flex items-center justify-center mb-4 border border-[#27272a]">
-                  <svg className="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex flex-col items-center justify-center h-60 text-zinc-500 text-sm text-center px-8">
+                <div className="w-16 h-16 bg-[#161616] rounded-2xl flex items-center justify-center mb-4 border border-[#2a2a2a] shadow-inner">
+                  <svg className="w-8 h-8 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
                   </svg>
                 </div>
-                <p className="font-bold text-gray-500 uppercase tracking-widest text-[10px] mb-1">Silence is golden</p>
-                <p className="text-gray-600 font-medium">No active connections yet. Head to Discover to find someone to chat with!</p>
+                <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px] mb-1">Silence is golden</p>
+                <p className="text-zinc-600 font-medium text-xs">No active connections yet. Head to Discover to find someone to chat with!</p>
               </div>
             ) : (
               friends.map((u) => {
@@ -209,39 +219,40 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                       navigate(`/chat/${u._id}`);
                       setUnread((prev) => ({ ...prev, [u._id]: 0 }));
                     }}
-                    className={`flex items-center gap-4 p-4 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                    className={`flex items-center gap-4 p-3.5 rounded-2xl cursor-pointer transition-all duration-300 border ${
                       isActiveChat 
-                        ? "bg-[#18181b] border-[#27272a] shadow-lg" 
-                        : "hover:bg-[#121212] border-transparent hover:border-[#27272a]"
+                        ? "bg-[#161616] border-[#2a2a2a] shadow-xl" 
+                        : "hover:bg-[#161616]/40 border-transparent hover:border-[#2a2a2a]/30"
                     } mb-2 group`}
                   >
                     <div className="relative">
-                      <div className="w-14 h-14 rounded-2xl bg-[#18181b] flex items-center justify-center flex-shrink-0 border border-[#27272a] overflow-hidden group-hover:scale-105 transition-transform">
+                      <div className="w-12 h-12 rounded-xl bg-[#111111] flex items-center justify-center flex-shrink-0 border border-[#2a2a2a] overflow-hidden group-hover:scale-102 transition-transform">
                         {u.profilePic ? (
                           <img src={u.profilePic} alt={u.name} className="w-full h-full object-cover" />
                         ) : (
-                          <span className="text-white font-black text-lg">{getInitials(u.name)}</span>
+                          <span className="text-zinc-400 font-extrabold text-base">{getInitials(u.name)}</span>
                         )}
                       </div>
                       {onlineUsers?.[u._id] && (
-                        <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#0a0a0a] rounded-full shadow-lg"></div>
+                        <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-[3px] border-[#0c0c0c] rounded-full shadow-lg"
+                             style={{ boxShadow: "0 0 10px rgba(16,185,129,0.4)" }} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
-                        <h3 className="text-white font-bold text-[15px] truncate tracking-tight">{u.name}</h3>
-                        <span className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+                        <h3 className="text-white font-semibold text-[14.5px] truncate tracking-tight group-hover:text-emerald-400 transition-colors">{u.name}</h3>
+                        <span className={`text-[9px] font-bold uppercase tracking-widest ${onlineUsers?.[u._id] ? "text-emerald-400" : "text-zinc-600"}`}>
                           {onlineUsers?.[u._id] ? "Online" : "Offline"}
                         </span>
                       </div>
                       {isTyping ? (
-                        <p className="text-green-500 text-[13px] truncate font-bold animate-pulse">typing...</p>
+                        <p className="text-emerald-400 text-xs truncate font-bold animate-pulse">typing...</p>
                       ) : (
-                        <p className="text-gray-500 text-[13px] truncate font-medium">Click to open chat</p>
+                        <p className="text-zinc-500 text-xs truncate font-medium">Click to open chat</p>
                       )}
                     </div>
                     {unread && unread[u._id] > 0 && (
-                      <span className="w-6 h-6 bg-white text-black text-[11px] font-black rounded-full flex items-center justify-center shadow-lg animate-bounce">
+                      <span className="w-5 h-5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-[10px] font-black rounded-full flex items-center justify-center shadow-[0_0_10px_rgba(16,185,129,0.3)] animate-pulse">
                         {unread[u._id]}
                       </span>
                     )}
@@ -257,8 +268,8 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
           <div className="animate-fadeIn space-y-4">
             
             {/* SELF STATUS */}
-            <div className="p-3 bg-[#121212] rounded-2xl border border-[#27272a] shadow-md">
-              <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1 mb-2">My Status</h4>
+            <div className="p-3 bg-[#111111] rounded-2xl border border-[#2a2a2a] shadow-md">
+              <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1 mb-2">My Status</h4>
               <div 
                 onClick={() => {
                   if (myStories) {
@@ -267,29 +278,29 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                     setIsStatusModalOpen(true);
                   }
                 }}
-                className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#18181b] cursor-pointer transition-all duration-300"
+                className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#161616] cursor-pointer transition-all duration-300"
               >
                 <div className="relative">
                   <div 
-                    className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-800 border-2 ${
-                      myStories ? "border-green-500 p-0.5" : "border-[#27272a]"
+                    className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-900 border-2 ${
+                      myStories ? "border-emerald-500 p-0.5" : "border-[#2a2a2a]"
                     }`}
                   >
                     {currentUser?.profilePic ? (
                       <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover rounded-full" />
                     ) : (
-                      <span className="text-white font-bold text-sm">{getInitials(currentUser?.name)}</span>
+                      <span className="text-emerald-400 font-bold text-sm">{getInitials(currentUser?.name)}</span>
                     )}
                   </div>
                   {!myStories && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-white text-black rounded-full flex items-center justify-center border-2 border-[#121212] shadow-md font-bold text-xs select-none">
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black rounded-full flex items-center justify-center border-2 border-[#111111] shadow-md font-bold text-xs select-none">
                       +
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-white font-bold text-[14px]">My Status</h3>
-                  <p className="text-gray-500 text-[12px] truncate font-medium">
+                  <p className="text-zinc-500 text-[12px] truncate font-medium">
                     {myStories 
                       ? `${myStories.statuses.length} status update${myStories.statuses.length > 1 ? 's' : ''}` 
                       : "Tap to add status update"
@@ -302,7 +313,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                       e.stopPropagation();
                       setIsStatusModalOpen(true);
                     }}
-                    className="p-2 bg-white/5 hover:bg-white/10 rounded-xl transition border border-white/5 text-gray-400 hover:text-white"
+                    className="p-2 bg-white/[0.03] hover:bg-white/[0.08] rounded-xl transition border border-white/5 text-zinc-400 hover:text-white"
                     title="Add new status"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,34 +325,33 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
             </div>
 
             {/* FRIENDS STATUSES */}
-            <div className="p-3 bg-[#121212] rounded-2xl border border-[#27272a] shadow-md">
-              <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-widest px-1 mb-2">Recent Updates</h4>
+            <div className="p-3 bg-[#111111] rounded-2xl border border-[#2a2a2a] shadow-md">
+              <h4 className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1 mb-2">Recent Updates</h4>
               
               {stories.filter(s => s.user._id !== currentUser._id).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-10 text-gray-600 text-sm text-center">
-                  <p className="text-gray-500 font-bold uppercase tracking-widest text-[10px] mb-1">No updates</p>
-                  <p className="text-gray-600 font-medium text-xs px-4">None of your connections have posted updates recently.</p>
+                <div className="flex flex-col items-center justify-center py-10 text-zinc-500 text-sm text-center">
+                  <p className="text-zinc-400 font-bold uppercase tracking-widest text-[10px] mb-1">No updates</p>
+                  <p className="text-zinc-600 font-medium text-xs px-4">None of your connections have posted updates recently.</p>
                 </div>
               ) : (
                 stories.filter(s => s.user._id !== currentUser._id).map((story) => (
                   <div
                     key={story.user._id}
                     onClick={() => setActiveStory(story)}
-                    className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#18181b] cursor-pointer transition-all duration-300 mb-1"
+                    className="flex items-center gap-4 p-2 rounded-xl hover:bg-[#161616] cursor-pointer transition-all duration-300 mb-1"
                   >
-                    {/* Ring border depending on status count */}
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-800 border-2 border-green-500 p-0.5">
+                      <div className="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center bg-zinc-900 border-2 border-emerald-500 p-0.5 shadow-[0_0_8px_rgba(16,185,129,0.3)]">
                         {story.user.profilePic ? (
                           <img src={story.user.profilePic} alt={story.user.name} className="w-full h-full object-cover rounded-full" />
                         ) : (
-                          <span className="text-white font-bold text-sm">{getInitials(story.user.name)}</span>
+                          <span className="text-emerald-400 font-bold text-sm">{getInitials(story.user.name)}</span>
                         )}
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-bold text-[14px]">{story.user.name}</h3>
-                      <p className="text-gray-500 text-[12px] truncate font-medium">
+                      <p className="text-zinc-500 text-[12px] truncate font-medium">
                         {story.statuses.length} update{story.statuses.length > 1 ? 's' : ''}
                       </p>
                     </div>
@@ -357,38 +367,38 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
         {activeTab === "invites" && (
           <div className="animate-fadeIn">
             {invites.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-60 text-gray-600 text-sm text-center">
-                 <p className="font-bold text-gray-500 uppercase tracking-widest text-[10px]">Inbox Clean</p>
-                 <p className="text-gray-600 font-medium">No pending invitations.</p>
+              <div className="flex flex-col items-center justify-center h-60 text-zinc-500 text-sm text-center">
+                 <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px] mb-1.5">Inbox Clean</p>
+                 <p className="text-zinc-600 font-medium text-xs">No pending invitations.</p>
               </div>
             ) : (
               invites.map((u) => (
-                <div key={u._id} className="flex flex-col gap-4 p-5 rounded-2xl bg-[#121212] border border-[#27272a] mb-3 shadow-lg">
+                <div key={u._id} className="flex flex-col gap-4 p-5 rounded-2xl bg-[#111111] border border-[#2a2a2a] mb-3 shadow-lg">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl bg-[#18181b] flex items-center justify-center flex-shrink-0 border border-[#27272a] overflow-hidden">
+                    <div className="w-12 h-12 rounded-xl bg-[#161616] flex items-center justify-center flex-shrink-0 border border-[#2a2a2a] overflow-hidden">
                       {u.profilePic ? (
                         <img src={u.profilePic} alt={u.name} className="w-full h-full object-cover" />
                       ) : (
-                        <span className="text-white font-bold text-lg">{getInitials(u.name)}</span>
+                        <span className="text-emerald-400 font-bold text-lg">{getInitials(u.name)}</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="text-white font-bold text-sm truncate tracking-tight">{u.name}</h3>
-                      <p className="text-gray-500 text-[11px] font-bold uppercase tracking-widest mt-0.5">Wants to chat</p>
+                      <p className="text-emerald-400/80 text-[10px] font-bold uppercase tracking-widest mt-0.5">Wants to chat</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
                     <button 
                       onClick={() => respondInvite(u._id, "accept")}
                       disabled={loadingAction === u._id}
-                      className="flex-1 py-3 bg-white text-black text-xs font-black rounded-xl hover:bg-gray-200 transition-all active:scale-95"
+                      className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-xs font-black rounded-xl hover:brightness-110 transition-all active:scale-95 shadow-md"
                     >
                       Accept
                     </button>
                     <button 
                       onClick={() => respondInvite(u._id, "reject")}
                       disabled={loadingAction === u._id}
-                      className="flex-1 py-3 bg-[#18181b] text-white border border-[#27272a] text-xs font-black rounded-xl hover:bg-[#27272a] transition-all active:scale-95"
+                      className="flex-1 py-3 bg-[#161616] text-white border border-[#2a2a2a] text-xs font-black rounded-xl hover:bg-[#202022] transition-all active:scale-95"
                     >
                       Decline
                     </button>
@@ -403,33 +413,33 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
         {activeTab === "discover" && (
           <div className="animate-fadeIn">
             {discover.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-60 text-gray-600 text-sm">
-                <p className="font-bold text-gray-500 uppercase tracking-widest text-[10px]">Lone Wolf</p>
-                <p className="text-gray-600 font-medium text-center px-10">You've connected with everyone available!</p>
+              <div className="flex flex-col items-center justify-center h-60 text-zinc-500 text-sm">
+                <p className="font-bold text-zinc-400 uppercase tracking-widest text-[10px] mb-1.5">Lone Wolf</p>
+                <p className="text-zinc-600 font-medium text-center text-xs px-10">You've connected with everyone available!</p>
               </div>
             ) : (
               discover.map((u) => (
-                <div key={u._id} className="flex items-center gap-4 p-4 rounded-2xl hover:bg-[#121212] transition-all duration-300 mb-2 border border-transparent hover:border-[#27272a]">
-                  <div className="w-12 h-12 rounded-xl bg-[#18181b] flex items-center justify-center flex-shrink-0 border border-[#27272a] overflow-hidden">
+                <div key={u._id} className="flex items-center gap-4 p-3.5 rounded-2xl hover:bg-[#111111] transition-all duration-300 mb-2 border border-transparent hover:border-[#2a2a2a]">
+                  <div className="w-11 h-11 rounded-xl bg-[#161616] flex items-center justify-center flex-shrink-0 border border-[#2a2a2a] overflow-hidden">
                     {u.profilePic ? (
                       <img src={u.profilePic} alt={u.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="text-gray-400 font-bold text-lg">{getInitials(u.name)}</span>
+                      <span className="text-zinc-500 font-bold text-base">{getInitials(u.name)}</span>
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-gray-200 font-bold text-[14px] truncate tracking-tight">{u.name}</h3>
-                    <p className="text-gray-600 text-[11px] font-medium uppercase tracking-tighter truncate">New Explorer</p>
+                    <h3 className="text-zinc-200 font-bold text-[14px] truncate tracking-tight">{u.name}</h3>
+                    <p className="text-zinc-600 text-[10px] font-bold uppercase tracking-wider mt-0.5 truncate">New Explorer</p>
                   </div>
                   {u.connectionStatus === "pending_sent" ? (
-                    <div className="px-4 py-2 bg-transparent border border-[#27272a] text-gray-500 text-[10px] font-black uppercase tracking-widest rounded-xl">
+                    <div className="px-4 py-2 bg-transparent border border-[#2a2a2a] text-zinc-500 text-[10px] font-black uppercase tracking-widest rounded-xl">
                       Waiting
                     </div>
                   ) : (
                     <button
                       onClick={() => sendInvite(u._id)}
                       disabled={loadingAction === u._id}
-                      className="px-5 py-2.5 bg-white text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-gray-200 transition-all active:scale-95 shadow-lg"
+                      className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black text-[11px] font-black uppercase tracking-widest rounded-xl hover:brightness-110 transition-all active:scale-95 shadow-md"
                     >
                       Invite
                     </button>
@@ -442,11 +452,11 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
       </div>
 
       {/* FOOTER */}
-      <div className="px-6 py-5 border-t border-[#27272a] flex-shrink-0 bg-[#0a0a0a] shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+      <div className="px-6 py-5 border-t border-[#202022] flex-shrink-0 bg-[#0c0c0c] shadow-[0_-10px_30px_rgba(0,0,0,0.6)]">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-gray-600 text-[10px] font-black tracking-[0.2em] uppercase mb-1">Global Network</p>
-            <p className="text-white text-[15px] font-black tracking-tight">{friends.length} <span className="text-gray-600 font-medium text-xs ml-1 tracking-normal">Active connections</span></p>
+            <p className="text-zinc-600 text-[10px] font-black tracking-[0.2em] uppercase mb-1">Global Network</p>
+            <p className="text-white text-[15px] font-black tracking-tight">{friends.length} <span className="text-zinc-600 font-medium text-xs ml-1 tracking-normal">Active connections</span></p>
           </div>
         </div>
       </div>

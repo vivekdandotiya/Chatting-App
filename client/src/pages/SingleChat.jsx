@@ -61,9 +61,7 @@ const VoicePlayer = ({ voiceUrl, isMe }) => {
     <div className="flex items-center gap-3 min-w-[220px] py-1 select-none">
       <button 
         onClick={togglePlay}
-        className={`w-10 h-10 rounded-full flex items-center justify-center transition shadow-sm ${
-          isMe ? 'bg-black/35 text-white hover:bg-black/50' : 'bg-[#111b21] text-white hover:bg-[#1f2c34]'
-        }`}
+        className="w-10 h-10 rounded-full flex items-center justify-center transition bg-[#2a2a2a] text-emerald-400 hover:text-emerald-300 hover:scale-105 active:scale-95 shadow-md"
       >
         {isPlaying ? (
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -75,18 +73,18 @@ const VoicePlayer = ({ voiceUrl, isMe }) => {
           </svg>
         )}
       </button>
-      <div className="flex-1 flex flex-col gap-1">
-        <div className={`h-1.5 rounded-full overflow-hidden relative ${isMe ? 'bg-black/20' : 'bg-white/10'}`}>
+      <div className="flex-1 flex flex-col gap-1.5">
+        <div className="h-1.5 rounded-full overflow-hidden relative bg-[#2a2a2a]">
           <div 
-            className={`h-full absolute left-0 top-0 transition-all duration-100 ease-linear ${isMe ? 'bg-[#e9edef]' : 'bg-[#00a884]'}`}
+            className="h-full absolute left-0 top-0 transition-all duration-100 ease-linear bg-gradient-to-r from-emerald-500 to-teal-400"
             style={{ width: `${duration ? (currentTime / duration) * 100 : 0}%` }}
           ></div>
         </div>
-        <div className="flex justify-between items-center text-[9px] font-bold">
-          <span className={isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}>
+        <div className="flex justify-between items-center text-[9px] font-bold text-zinc-500 uppercase tracking-widest">
+          <span>
             {formatTime(currentTime)} / {formatTime(duration)}
           </span>
-          <span className={isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}>Voice Message</span>
+          <span>Voice Msg</span>
         </div>
       </div>
     </div>
@@ -582,39 +580,43 @@ function SingleChat() {
   });
 
   if (!user || !user._id) {
-    return <div className="h-[100dvh] bg-[#0a0a0a] flex justify-center items-center text-white"><h2 className="text-xl">Loading...</h2></div>;
+    return (
+      <div className="h-[100dvh] bg-[#0c0c0c] flex justify-center items-center text-white font-sans">
+        <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0b141a] text-white overflow-hidden relative font-sans">
+    <div className="flex flex-col h-full w-full bg-[#0c0c0c] text-white overflow-hidden relative font-sans">
       
       {/* HEADER */}
-      <div className="bg-[#202c33] px-4 py-3.5 flex items-center justify-between border-b border-zinc-900 flex-shrink-0 z-10 shadow-[0_1px_3px_rgba(0,0,0,0.4)]">
+      <div className="bg-[#111111]/85 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-[#202022] flex-shrink-0 z-10 shadow-lg">
         <div className="flex gap-4 items-center">
           {/* Back button hidden on desktop when split screen */}
           <button 
             onClick={() => navigate("/chat")}
-            className="md:hidden hover:bg-[#2a3942] p-2 rounded-full transition text-[#8696a0] hover:text-white"
+            className="md:hidden hover:bg-zinc-800 p-2 rounded-xl transition text-zinc-400 hover:text-white"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[#111b21] border border-zinc-800 flex items-center justify-center overflow-hidden">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border border-[#2a2a2a] flex items-center justify-center overflow-hidden">
                {targetPic ? (
                  <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
                ) : (
-                 <span className="font-bold text-white/80">{targetName[0]?.toUpperCase()}</span>
+                 <span className="font-extrabold text-emerald-400">{targetName[0]?.toUpperCase()}</span>
                )}
             </div>
 
             <div>
-               <h2 className="text-[15px] font-semibold text-[#e9edef] tracking-tight">{targetName}</h2>
+               <h2 className="text-[15px] font-bold text-white tracking-tight leading-snug">{targetName}</h2>
                {isTargetTyping ? (
-                 <p className="text-xs text-[#00a884] font-bold animate-pulse">typing...</p>
+                 <p className="text-[11px] text-emerald-400 font-bold animate-pulse">typing...</p>
                ) : (
-                 <p className="text-[11px] text-[#8696a0] font-medium">{isAllowed ? 'online' : 'click for info'}</p>
+                 <p className="text-[11px] text-zinc-500 font-medium">{isAllowed ? 'Active now' : 'Connection info'}</p>
                )}
             </div>
           </div>
@@ -628,7 +630,7 @@ function SingleChat() {
                 setIsSearching(!isSearching);
                 setChatSearchQuery("");
               }}
-              className={`p-2 rounded-full transition ${isSearching ? "text-white bg-[#2a3942]" : "text-[#8696a0] hover:text-white hover:bg-[#2a3942]"}`}
+              className={`p-2 rounded-xl transition border ${isSearching ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" : "text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"}`}
               title="Search chat"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -641,13 +643,13 @@ function SingleChat() {
 
       {/* SEARCH BAR INPUT OVERLAY */}
       {isSearching && (
-        <div className="px-4 py-2.5 border-b border-zinc-950 bg-[#111b21] flex gap-2 items-center z-10 animate-slideDown">
+        <div className="px-5 py-3 border-b border-[#202022] bg-[#111111] flex gap-3 items-center z-10 animate-slideDown">
           <input
             type="text"
             placeholder="Search in this conversation..."
             value={chatSearchQuery}
             onChange={(e) => setChatSearchQuery(e.target.value)}
-            className="flex-1 bg-[#202c33] border-none rounded-xl px-4 py-2 text-sm text-white placeholder-[#8696a0] focus:outline-none focus:ring-0"
+            className="flex-1 bg-[#161616] border border-[#2a2a2a] rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
             autoFocus
           />
           <button 
@@ -655,35 +657,34 @@ function SingleChat() {
               setIsSearching(false);
               setChatSearchQuery("");
             }}
-            className="text-xs font-bold text-[#8696a0] uppercase hover:text-white transition px-2 py-2"
+            className="text-xs font-bold text-zinc-400 uppercase hover:text-white transition px-2 py-2"
           >
-            Clear
+            Close
           </button>
         </div>
       )}
 
       {loadingStatus ? (
-        <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#0b141a]">
-           <div className="w-10 h-10 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-           <h2 className="text-xl font-medium tracking-tight">
+        <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-[#0c0c0c]">
+           <div className="w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+           <h2 className="text-xl font-bold tracking-tight">
              {isWakingUp ? "Server is waking up..." : "Loading chat..."}
            </h2>
-           {isWakingUp && <p className="text-[#8e8e93] text-sm italic">This may take a minute on cold starts.</p>}
         </div>
       ) : !isAllowed ? (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0b141a]">
-          <div className="w-16 h-16 bg-[#202c33] border border-zinc-800 rounded-2xl flex items-center justify-center mb-6 shadow-xl">
-             <svg className="w-8 h-8 text-[#8696a0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-[#0c0c0c]">
+          <div className="w-16 h-16 bg-[#161616] border border-[#2a2a2a] rounded-2xl flex items-center justify-center mb-6 shadow-2xl">
+             <svg className="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
              </svg>
           </div>
-          <h2 className="text-xl font-bold mb-2 text-[#e9edef]">Chat Locked</h2>
-          <p className="text-[#8696a0] text-sm max-w-sm">
+          <h2 className="text-xl font-bold mb-2 text-white">Chat Locked</h2>
+          <p className="text-zinc-500 text-sm max-w-sm leading-relaxed mb-6">
              You need to be connected with this user to start chatting. Send an invite from the Discover tab, or ask them to accept yours.
           </p>
           <button 
              onClick={() => navigate('/chat')}
-             className="mt-6 px-6 py-2 bg-[#00a884] text-white font-semibold rounded-xl hover:bg-[#008f72] transition md:hidden"
+             className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-bold text-xs uppercase tracking-widest rounded-xl hover:brightness-110 transition md:hidden shadow-lg shadow-emerald-500/20"
           >
              Return to Messages
           </button>
@@ -694,14 +695,14 @@ function SingleChat() {
           <div 
             className="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-zinc-800 relative select-none"
             style={{ 
-              backgroundColor: "#0b141a",
-              backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.007' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm1-61c3.16 0 5.72-2.56 5.72-5.72 0-3.16-2.56-5.72-5.72-5.72-3.16 0-5.72 2.56-5.72 5.72 0 3.16 2.56 5.72 5.72 5.72zm52-3c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-4 49c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-39 16c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-28-57c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm67 33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM8 77c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm25-33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm21-32c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-19 32c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm26 38c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-9-54c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm36 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-49 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-24-44c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm80-80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm-40-40c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z'/%3E%3C/g%3E%3C/svg%3E")`
+              backgroundColor: "#0c0c0c",
+              backgroundImage: `url("data:image/svg+xml,%3Csvg width='80' height='80' viewBox='0 0 80 80' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.005' fill-rule='evenodd'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm1-61c3.16 0 5.72-2.56 5.72-5.72 0-3.16-2.56-5.72-5.72-5.72-3.16 0-5.72 2.56-5.72 5.72 0 3.16 2.56 5.72 5.72 5.72zm52-3c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-4 49c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-39 16c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-28-57c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm67 33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zM8 77c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm25-33c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm21-32c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm-19 32c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm26 38c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-9-54c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm36 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-49 29c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zm-24-44c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm80-80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm0 80c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1zm-40-40c.552 0 1-.448 1-1s-.448-1-1-1-1 .448-1 1 .448 1 1 1z'/%3E%3C/g%3E%3C/svg%3E")`
             }}
           >
             {filteredMessages.length === 0 ? (
               <div className="flex items-center justify-center h-full">
-                <div className="bg-[#202c33] border border-zinc-800 rounded-xl p-4 text-center max-w-xs text-sm text-[#8696a0] shadow-xl">
-                  {chatSearchQuery ? "No matching messages found." : "Connection established. Send a message to start the conversation."}
+                <div className="bg-[#161616] border border-[#2a2a2a] rounded-2xl p-5 text-center max-w-xs text-xs text-zinc-500 shadow-2xl leading-relaxed">
+                  {chatSearchQuery ? "No matching messages found." : "Secure connection active. Direct messages sent here are end-to-end encrypted."}
                 </div>
               </div>
             ) : (
@@ -712,7 +713,7 @@ function SingleChat() {
                   return (
                     <div
                       key={msg._id || i}
-                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group mb-2.5`}
+                      className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group mb-3`}
                       onMouseEnter={() => setHoveredMessageId(msg._id)}
                       onMouseLeave={() => setHoveredMessageId(null)}
                     >
@@ -720,7 +721,7 @@ function SingleChat() {
                       {hoveredMessageId === msg._id && !isMe && !msg.isDeleted && (
                         <button 
                           onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
-                          className="p-1 text-[#8696a0] hover:text-white transition-opacity duration-200 mr-2"
+                          className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/40 rounded-xl transition duration-200 mr-2 flex items-center justify-center"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -733,8 +734,8 @@ function SingleChat() {
                         <div 
                           onClick={(e) => e.stopPropagation()}
                           className={`
-                            absolute -top-12 z-20 flex gap-2 bg-[#1f1f23] border border-[#3f3f46] 
-                            p-2 rounded-full shadow-2xl transition-all duration-200
+                            absolute -top-12 z-20 flex gap-2 bg-[#161616]/95 border border-[#2a2a2a] backdrop-blur-md
+                            p-1.5 rounded-full shadow-2xl transition-all duration-200
                             ${isMe ? 'right-0' : 'left-0'}
                           `}
                         >
@@ -742,7 +743,7 @@ function SingleChat() {
                             <button
                               key={emoji}
                               onClick={(e) => { e.stopPropagation(); addReaction(msg._id, emoji); }}
-                              className="hover:scale-125 transition-transform p-1 rounded-full hover:bg-gray-800"
+                              className="hover:scale-125 transition-transform p-1.5 rounded-full hover:bg-white/[0.05]"
                             >
                               {emoji}
                             </button>
@@ -753,12 +754,12 @@ function SingleChat() {
                       <div 
                         onClick={() => !msg.isDeleted && setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
                         className={`
-                          transition-all relative group/bubble select-text
+                          transition-all relative group/bubble select-text border
                           ${msg.isDeleted 
-                            ? "bg-[#182229] border border-zinc-900 text-zinc-500 rounded-2xl p-3 max-w-[85%] italic text-[13.5px]"
+                            ? "bg-[#111111] border-[#2a2a2a] text-zinc-600 rounded-2xl p-3 max-w-[85%] italic text-[13.5px]"
                             : isMe 
-                              ? "bg-[#005c4b] text-[#e9edef] rounded-tr-none px-3.5 py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] font-normal text-[14.5px]" 
-                              : "bg-[#202c33] text-[#e9edef] rounded-tl-none px-3.5 py-2 rounded-xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_1px_0.5px_rgba(0,0,0,0.13)] font-normal text-[14.5px]"
+                              ? "bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-[#e9edef] rounded-tr-none px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_4px_12px_rgba(16,185,129,0.05)] font-normal text-[14px]" 
+                              : "bg-[#161616] border-[#2a2a2a] text-[#e9edef] rounded-tl-none px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_4px_12px_rgba(0,0,0,0.15)] font-normal text-[14px]"
                           } 
                           ${msg.messageType === "file" && msg.fileType === "image" && !msg.isDeleted ? "!p-1 !overflow-hidden" : ""}
                           animate-message
@@ -769,7 +770,7 @@ function SingleChat() {
                           <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
                             <button 
                               onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg._id); }}
-                              className="p-1.5 text-[#8696a0] hover:text-red-500 rounded-full hover:bg-red-500/10 transition"
+                              className="p-1.5 text-zinc-500 hover:text-red-400 rounded-xl hover:bg-red-500/10 transition"
                               title="Delete for everyone"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -777,7 +778,7 @@ function SingleChat() {
                               </svg>
                             </button>
                             <button 
-                              className="p-1.5 text-[#8696a0] hover:text-white rounded-full hover:bg-[#202c33] transition"
+                              className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-xl hover:bg-[#161616] transition"
                               onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -788,7 +789,7 @@ function SingleChat() {
                         )}
 
                         {!isMe && !msg.isDeleted && (
-                          <p className={`text-[10px] text-[#00a884] mb-0.5 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
+                          <p className={`text-[10px] text-emerald-400 mb-0.5 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
                             {msg.senderName}
                           </p>
                         )}
@@ -810,29 +811,29 @@ function SingleChat() {
                                       className="max-w-full rounded-xl max-h-[300px] object-cover cursor-zoom-in"
                                       onClick={(e) => { e.stopPropagation(); window.open(msg.fileUrl, '_blank'); }}
                                     />
-                                    <div className="absolute bottom-2 right-2 flex items-center gap-1 bg-black/50 backdrop-blur-md px-2 py-0.5 rounded-full text-[10px] text-white">
+                                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white">
                                        <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                        {isMe && (
-                                          <span className={msg.status === "read" ? "text-[#53bdeb]" : "text-white/70"}>
-                                             {msg.status === "sent" ? "✓" : msg.status === "delivered" ? "✓✓" : "✓✓"}
+                                          <span className={msg.status === "read" ? "text-emerald-400" : "text-white/70"}>
+                                             {msg.status === "sent" ? "✓" : "✓✓"}
                                           </span>
                                        )}
                                     </div>
                                  </div>
                               ) : (
-                                 <div className="flex items-center gap-3 p-1">
-                                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isMe ? 'bg-black/10' : 'bg-white/10'}`}>
-                                       <svg className={`w-6 h-6 ${isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                 <div className="flex items-center gap-3 p-1.5 bg-[#111111] border border-[#2a2a2a] rounded-xl">
+                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-zinc-900 border border-[#2a2a2a]">
+                                       <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                                        </svg>
                                     </div>
                                     <div className="flex-1 overflow-hidden">
-                                       <p className="text-xs font-bold truncate pr-2 text-[#e9edef]">{msg.fileName || "Document"}</p>
+                                       <p className="text-xs font-bold truncate pr-2 text-white">{msg.fileName || "Document"}</p>
                                        <a 
                                          href={msg.fileUrl} 
                                          target="_blank" 
                                          rel="noopener noreferrer" 
-                                         className={`text-[10px] font-black uppercase tracking-widest hover:underline ${isMe ? 'text-[#e9edef]/40' : 'text-[#8696a0]'}`}
+                                         className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:underline"
                                          onClick={(e) => e.stopPropagation()}
                                        >
                                          Download
@@ -842,12 +843,12 @@ function SingleChat() {
                               )}
                            </div>
                         ) : (
-                          <p className="break-words leading-relaxed whitespace-pre-line">{msg.content}</p>
+                          <p className="break-words leading-relaxed whitespace-pre-line text-zinc-100">{msg.content}</p>
                         )}
 
                         {/* TIME & DELIVERY STATUS */}
                         {(!msg.messageType || msg.messageType !== "file" || msg.fileType !== "image" || msg.isDeleted) ? (
-                           <div className={`text-[9px] flex gap-1 justify-end items-center mt-1 select-none ${msg.isDeleted ? 'text-zinc-600' : isMe ? 'text-[#e9edef]/60' : 'text-[#8696a0]'}`}>
+                           <div className={`text-[9px] flex gap-1 justify-end items-center mt-1 select-none font-medium ${msg.isDeleted ? 'text-zinc-700' : isMe ? 'text-zinc-400' : 'text-zinc-500'}`}>
                              <span>
                                {new Date(msg.createdAt).toLocaleTimeString([], {
                                  hour: "2-digit",
@@ -859,7 +860,7 @@ function SingleChat() {
                                <span className="text-[11px] font-semibold leading-none">
                                  {msg.status === "sent" && "✓"}
                                  {msg.status === "delivered" && "✓✓"}
-                                 {msg.status === "read" && <span className="text-[#53bdeb]">✓✓</span>}
+                                 {msg.status === "read" && <span className="text-emerald-400">✓✓</span>}
                                </span>
                              )}
                            </div>
@@ -871,14 +872,14 @@ function SingleChat() {
                             absolute -bottom-4 flex -space-x-1 items-center z-10 select-none
                             ${isMe ? 'right-2' : 'left-2'}
                           `}>
-                            <div className="flex bg-[#202023] border border-[#2d2d30] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
+                            <div className="flex bg-[#161616] border border-[#2a2a2a] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
                               {msg.reactions.map((r, idx) => (
                                 <span key={idx} className="text-[12px]">
                                   {r.emoji}
                                 </span>
                               ))}
                               {msg.reactions.length > 1 && (
-                                <span className="ml-1 text-[9px] text-[#8696a0] font-bold flex items-center">
+                                <span className="ml-1 text-[9px] text-zinc-500 font-bold flex items-center">
                                   {msg.reactions.length}
                                 </span>
                               )}
@@ -895,23 +896,23 @@ function SingleChat() {
           </div>
 
           {/* CHAT INPUT FORM */}
-          <div className="p-3 bg-[#111b21] z-10 border-t border-zinc-950">
+          <div className="p-4 bg-[#111111]/95 backdrop-blur-md z-10 border-t border-[#202022]">
             {isRecording ? (
-              <div className="flex items-center gap-4 bg-[#202c33] rounded-full px-6 py-3 border border-red-500/20 animate-pulse">
+              <div className="flex items-center gap-4 bg-red-950/20 rounded-2xl px-6 py-3 border border-red-500/20 animate-pulse max-w-6xl mx-auto">
                 <div className="flex items-center gap-3 flex-1">
                   <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
-                  <span className="text-sm font-medium text-[#e9edef]">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+                  <span className="text-sm font-semibold text-red-400">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
                 </div>
                 <button 
                   onClick={cancelRecording}
-                  className="text-[#8696a0] hover:text-white text-xs font-bold uppercase tracking-wider"
+                  className="text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-wider"
                 >
                   Cancel
                 </button>
-                <div className="w-px h-6 bg-zinc-800"></div>
+                <div className="w-px h-6 bg-[#2a2a2a]"></div>
                 <button 
                   onClick={stopRecording}
-                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20"
+                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20 hover:scale-105 active:scale-95"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" />
@@ -930,12 +931,12 @@ function SingleChat() {
                 <button
                   onClick={() => fileInputRef.current.click()}
                   disabled={isUploading}
-                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition ${isUploading ? 'opacity-50' : 'text-[#8696a0] hover:text-white hover:bg-[#202c33]'}`}
+                  className={`flex-shrink-0 w-11 h-11 border border-[#2a2a2a] rounded-xl flex items-center justify-center bg-[#161616] transition hover:scale-105 active:scale-95 ${isUploading ? 'opacity-50' : 'text-zinc-400 hover:text-white hover:border-emerald-500/30'}`}
                 >
                   {isUploading ? (
-                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                     <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                      </svg>
                   )}
@@ -945,26 +946,26 @@ function SingleChat() {
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder={isUploading ? "Uploading file..." : "Type a message"}
+                  placeholder={isUploading ? "Uploading attachment..." : "Type a message..."}
                   disabled={isUploading}
-                  className="flex-1 px-5 py-3 rounded-xl bg-[#2a3942] border-none text-[#e9edef] placeholder-[#8696a0] focus:outline-none focus:ring-0 text-sm transition"
+                  className="flex-1 px-5 py-3 rounded-xl bg-[#161616] border border-[#2a2a2a] text-[#e9edef] placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-sm transition"
                 />
 
                 {!message.trim() ? (
                   <button
                     onClick={startRecording}
-                    className="bg-transparent hover:bg-[#202c33] text-[#8696a0] hover:text-white w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 transition"
+                    className="border border-[#2a2a2a] bg-[#161616] text-zinc-400 hover:text-white w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:scale-105 hover:border-emerald-500/30 active:scale-95"
                   >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
                     </svg>
                   </button>
                 ) : (
                   <button
                     onClick={sendMessage}
-                    className="bg-[#00a884] hover:bg-[#008f72] w-11 h-11 rounded-full text-white flex items-center justify-center flex-shrink-0 transition shadow-md"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-400 text-black w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:brightness-110 shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95"
                   >
-                    <svg className="w-5 h-5 ml-0.5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                     </svg>
                   </button>
