@@ -27,6 +27,7 @@ export default function Chess() {
   const [selected, setSelected] = useState(null); // { r, c }
   const [validMoves, setValidMoves] = useState([]); // Array of { r, c }
   const [gameLog, setGameLog] = useState([]);
+  const [winner, setWinner] = useState(null); // null | "w" | "b"
 
   const getPieceLabel = (type) => {
     switch (type) {
@@ -165,12 +166,14 @@ export default function Chess() {
   };
 
   const handleSquareClick = (r, c) => {
+    if (winner) return;
     const piece = board[r][c];
 
     // If a piece is selected and target is a valid move
     if (selected && validMoves.some((m) => m.r === r && m.c === c)) {
       const newBoard = board.map((row) => [...row]);
       const movingPiece = newBoard[selected.r][selected.c];
+      const targetPiece = newBoard[r][c];
 
       // Perform move
       newBoard[r][c] = movingPiece;
@@ -179,6 +182,11 @@ export default function Chess() {
       // Log movement
       const moveText = `${movingPiece.color === "w" ? "White" : "Black"} ${getPieceLabel(movingPiece.type)}: ${String.fromCharCode(97 + selected.c)}${8 - selected.r} ➔ ${String.fromCharCode(97 + c)}${8 - r}`;
       setGameLog((prev) => [moveText, ...prev]);
+
+      // Check King Capture
+      if (targetPiece && targetPiece.type === "k") {
+        setWinner(movingPiece.color);
+      }
 
       setBoard(newBoard);
       setTurn(turn === "w" ? "b" : "w");
@@ -203,6 +211,7 @@ export default function Chess() {
     setSelected(null);
     setValidMoves([]);
     setGameLog([]);
+    setWinner(null);
   };
 
   return (
@@ -223,7 +232,7 @@ export default function Chess() {
         </div>
 
         {/* Board container */}
-        <div className="border border-[#2a2a2a] p-1.5 rounded-2xl bg-[#111111] shadow-2xl">
+        <div className="border border-[#2a2a2a] p-1.5 rounded-2xl bg-[#111111] shadow-2xl relative">
           <div className="grid grid-cols-8 gap-0.5 w-[300px] h-[300px] sm:w-[360px] sm:h-[360px]">
             {board.map((row, r) =>
               row.map((piece, c) => {
@@ -275,6 +284,22 @@ export default function Chess() {
               })
             )}
           </div>
+
+          {/* Winner Overlay */}
+          {winner && (
+            <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-2xl animate-fadeIn z-20">
+              <h3 className="text-2xl font-black text-emerald-400 uppercase tracking-wider mb-1">Victory!</h3>
+              <p className="text-zinc-300 text-xs mb-6">
+                {winner === "w" ? "White" : "Black"} wins by capturing the King!
+              </p>
+              <button
+                onClick={resetGame}
+                className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-[10px] uppercase tracking-widest rounded-xl hover:brightness-110 active:scale-95 transition"
+              >
+                Play Again
+              </button>
+            </div>
+          )}
         </div>
 
         <button

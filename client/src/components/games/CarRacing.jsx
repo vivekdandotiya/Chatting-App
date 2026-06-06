@@ -9,7 +9,7 @@ export default function CarRacing() {
   
   // Game states held in refs to allow canvas loop to read them immediately
   const keysRef = useRef({ Left: false, Right: false });
-  const playerRef = useRef({ x: 155, y: 380, width: 30, height: 55, targetX: 155 });
+  const playerRef = useRef({ x: 145, y: 380, width: 30, height: 55, targetX: 145 });
   const obstaclesRef = useRef([]);
   const coinsRef = useRef([]);
   const roadOffsetRef = useRef(0);
@@ -17,7 +17,7 @@ export default function CarRacing() {
   const distanceRef = useRef(0);
 
   const initGame = () => {
-    playerRef.current = { x: 155, y: 380, width: 30, height: 55, targetX: 155 };
+    playerRef.current = { x: 145, y: 380, width: 30, height: 55, targetX: 145 };
     obstaclesRef.current = [];
     coinsRef.current = [];
     roadOffsetRef.current = 0;
@@ -84,11 +84,11 @@ export default function CarRacing() {
       const randomLane = lanes[Math.floor(Math.random() * lanes.length)];
 
       const tooClose = obstaclesRef.current.some(o => Math.abs(o.y) < 100 && o.x === randomLane) || 
-                       coinsRef.current.some(c => Math.abs(c.y) < 100 && c.x === randomLane);
+                       coinsRef.current.some(c => Math.abs(c.y) < 100 && (c.x - 15) === randomLane);
       
       if (!tooClose) {
         coinsRef.current.push({
-          x: randomLane + 10, // center it in lane
+          x: randomLane + 15, // center it in lane
           y: -30,
           radius: 8
         });
@@ -145,17 +145,19 @@ export default function CarRacing() {
       obstaclesRef.current = obstaclesRef.current.filter(o => o.y < 500);
 
       // Move & Update Coins
-      coinsRef.current.forEach((coin, idx) => {
+      const remainingCoins = [];
+      coinsRef.current.forEach((coin) => {
         coin.y += gameSpeedRef.current;
 
         // Player coin pickup
         const dist = Math.hypot((player.x + 15) - coin.x, (player.y + 27) - coin.y);
         if (dist < 25) {
           setScore(prev => prev + 50); // collect bonus
-          coinsRef.current.splice(idx, 1);
+        } else if (coin.y < 500) {
+          remainingCoins.push(coin);
         }
       });
-      coinsRef.current = coinsRef.current.filter(c => c.y < 500);
+      coinsRef.current = remainingCoins;
     };
 
     const draw = () => {

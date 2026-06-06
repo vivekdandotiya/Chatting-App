@@ -1,10 +1,13 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import TicTacToe from "./games/TicTacToe";
 import Game2048 from "./games/2048";
 import CarRacing from "./games/CarRacing";
 import Chess from "./games/Chess";
 
 export default function GameZone({ game, onClose }) {
+  const navigate = useNavigate();
+
   const gamesList = [
     {
       id: "chess",
@@ -52,25 +55,23 @@ export default function GameZone({ game, onClose }) {
     }
   ];
 
+  const activeGame = game && game !== "list" ? gamesList.find(g => g.id === game) : null;
+
   const handleSelectGame = (gameId) => {
-    // Set query param ?game=<gameId>
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.set("game", gameId);
-    // Remove active chat user ID if any to prevent collision
-    window.history.pushState({}, "", `${window.location.pathname}?${searchParams.toString()}`);
-    // Trigger window popstate or custom event to force parent re-render
-    window.dispatchEvent(new Event("popstate"));
+    navigate(`/chat?${searchParams.toString()}`);
   };
 
   const handleBackToPicker = () => {
     const searchParams = new URLSearchParams(window.location.search);
-    searchParams.delete("game");
-    window.history.pushState({}, "", `${window.location.pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
-    window.dispatchEvent(new Event("popstate"));
+    searchParams.set("game", "list");
+    navigate(`/chat?${searchParams.toString()}`);
   };
 
   const renderActiveGame = () => {
-    switch (game) {
+    if (!activeGame) return null;
+    switch (activeGame.id) {
       case "tictactoe":
         return <TicTacToe />;
       case "puzzle":
@@ -90,7 +91,7 @@ export default function GameZone({ game, onClose }) {
       {/* HEADER */}
       <div className="px-6 py-4 border-b border-[#202022] flex items-center justify-between bg-[#111111]/80 backdrop-blur-md z-10">
         <div className="flex items-center gap-3">
-          {game ? (
+          {activeGame ? (
             <button
               onClick={handleBackToPicker}
               className="p-2 hover:bg-[#161616] border border-[#2a2a2a] text-zinc-400 hover:text-white rounded-xl transition flex items-center justify-center"
@@ -114,16 +115,16 @@ export default function GameZone({ game, onClose }) {
 
           <div>
             <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-              <span>{game ? gamesList.find(g => g.id === game)?.title : "Game Zone"}</span>
+              <span>{activeGame ? activeGame.title : "Game Zone"}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow"></span>
             </h2>
             <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-0.5">
-              {game ? gamesList.find(g => g.id === game)?.tag : "Play instant games"}
+              {activeGame ? activeGame.tag : "Play instant games"}
             </p>
           </div>
         </div>
 
-        {game && onClose && (
+        {activeGame && onClose && (
           <button
             onClick={onClose}
             className="p-2 hover:bg-[#161616] border border-[#2a2a2a] text-zinc-400 hover:text-white rounded-xl transition"
@@ -138,7 +139,7 @@ export default function GameZone({ game, onClose }) {
 
       {/* BODY CONTENT */}
       <div className="flex-1 overflow-y-auto p-6 scrollbar-hide">
-        {game ? (
+        {activeGame ? (
           <div className="w-full h-full flex items-center justify-center">
             {renderActiveGame()}
           </div>

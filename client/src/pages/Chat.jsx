@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
 import SingleChat from "./SingleChat";
@@ -59,6 +59,7 @@ const VartaHome = () => {
 function Chat() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [users, setUsers] = useState([]);
   const [unread, setUnread] = useState({});
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -66,7 +67,7 @@ function Chat() {
   const [isServerReady, setIsServerReady] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
 
-  const [activeGame, setActiveGame] = useState(new URLSearchParams(window.location.search).get("game"));
+  const activeGame = new URLSearchParams(location.search).get("game");
 
   const currentUser = JSON.parse(sessionStorage.getItem("user"));
 
@@ -81,14 +82,6 @@ function Chat() {
 
   useEffect(() => {
     wakeServer();
-  }, []);
-
-  useEffect(() => {
-    const handlePopState = () => {
-      setActiveGame(new URLSearchParams(window.location.search).get("game"));
-    };
-    window.addEventListener("popstate", handlePopState);
-    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
@@ -186,7 +179,6 @@ function Chat() {
     const searchParams = new URLSearchParams(window.location.search);
     searchParams.delete("game");
     navigate(`/chat${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
-    setActiveGame(null);
   };
 
   if (loading) {
