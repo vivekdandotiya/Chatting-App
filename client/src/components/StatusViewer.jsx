@@ -64,8 +64,6 @@ export default function StatusViewer({ userStory, onClose }) {
 
   const handleScreenTouchEnd = (e, clickArea) => {
     setIsPaused(false);
-    // If it was a quick tap, navigate
-    // clickArea can be "left" or "right"
     if (clickArea === "left") {
       handlePrev();
     } else if (clickArea === "right") {
@@ -86,17 +84,22 @@ export default function StatusViewer({ userStory, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black z-[250] flex flex-col justify-between font-sans select-none overflow-hidden animate-fadeIn">
-      {/* BACKGROUND FOR IMAGE */}
-      {activeStatus.type === "image" && (
+    <div className="fixed inset-0 bg-[#070707] z-[250] flex flex-col justify-between font-sans select-none overflow-hidden animate-fadeIn">
+      {/* BACKGROUND BLUR EFFECT */}
+      {activeStatus.type === "image" ? (
         <div 
-          className="absolute inset-0 bg-cover bg-center blur-2xl opacity-30 scale-105 pointer-events-none"
+          className="absolute inset-0 bg-cover bg-center blur-3xl opacity-20 scale-110 pointer-events-none"
           style={{ backgroundImage: `url(${activeStatus.content})` }}
+        ></div>
+      ) : (
+        <div 
+          className="absolute inset-0 bg-cover bg-center blur-3xl opacity-10 scale-110 pointer-events-none"
+          style={{ backgroundImage: `radial-gradient(circle, ${activeStatus.backgroundColor} 0%, transparent 80%)` }}
         ></div>
       )}
 
       {/* TOP CONTROLS */}
-      <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 to-transparent z-[260] flex flex-col gap-3">
+      <div className="absolute top-0 inset-x-0 p-5 bg-gradient-to-b from-black/90 via-black/40 to-transparent z-[260] flex flex-col gap-4">
         {/* PROGRESS BARS */}
         <div className="flex gap-1.5 w-full">
           {statuses.map((_, idx) => {
@@ -105,9 +108,9 @@ export default function StatusViewer({ userStory, onClose }) {
             else if (idx === currentIndex) widthVal = `${progress}%`;
 
             return (
-              <div key={idx} className="flex-1 h-1 bg-white/30 rounded-full overflow-hidden">
+              <div key={idx} className="flex-1 h-[3px] bg-white/20 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-white transition-all ease-linear"
+                  className="h-full bg-gradient-to-r from-emerald-400 to-teal-300 transition-all ease-linear"
                   style={{ 
                     width: widthVal,
                     transitionDuration: idx === currentIndex ? `${intervalStep}ms` : "0ms" 
@@ -121,26 +124,26 @@ export default function StatusViewer({ userStory, onClose }) {
         {/* HEADER: USER DETAILS & CLOSE */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full border border-white/20 bg-zinc-800 overflow-hidden flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl border border-emerald-500/20 bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 overflow-hidden flex items-center justify-center">
               {user.profilePic ? (
                 <img src={user.profilePic} alt={user.name} className="w-full h-full object-cover" />
               ) : (
-                <span className="text-white font-bold text-sm">
+                <span className="text-emerald-400 font-extrabold text-sm">
                   {user.name?.split(" ").map(x => x[0]).join("").toUpperCase() || "?"}
                 </span>
               )}
             </div>
             <div>
-              <h3 className="text-white text-[15px] font-bold tracking-tight">{user.name}</h3>
-              <p className="text-white/60 text-xs mt-0.5">{formatTime(activeStatus.createdAt)}</p>
+              <h3 className="text-white text-[14.5px] font-bold tracking-tight">{user.name}</h3>
+              <p className="text-zinc-500 text-[11px] font-medium mt-0.5">{formatTime(activeStatus.createdAt)}</p>
             </div>
           </div>
 
           <button 
             onClick={onClose}
-            className="text-white/70 hover:text-white p-2 rounded-full hover:bg-white/10 transition z-50"
+            className="text-zinc-400 hover:text-white p-2 rounded-xl hover:bg-white/[0.05] transition z-50"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
@@ -173,14 +176,14 @@ export default function StatusViewer({ userStory, onClose }) {
             style={{ backgroundColor: activeStatus.backgroundColor }}
             className="w-full h-full flex items-center justify-center px-8 text-center text-white text-2xl font-bold leading-normal break-words"
           >
-            <span className="max-w-xl">{activeStatus.content}</span>
+            <span className="max-w-xl drop-shadow-lg">{activeStatus.content}</span>
           </div>
         ) : (
-          <div className="w-full h-full max-h-[85vh] max-w-4xl relative z-30 p-2 flex items-center justify-center">
+          <div className="w-full h-full max-h-[80vh] max-w-4xl relative z-30 p-4 flex items-center justify-center">
             <img 
               src={activeStatus.content} 
               alt="Status" 
-              className="max-h-full max-w-full object-contain rounded-xl shadow-2xl"
+              className="max-h-full max-w-full object-contain rounded-2xl shadow-2xl border border-white/[0.05]"
             />
           </div>
         )}
