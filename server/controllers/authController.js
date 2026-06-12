@@ -206,6 +206,40 @@ const unsubscribeUser = async (req, res) => {
   }
 };
 
+const getPushStatus = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const hasPublic = !!process.env.VAPID_PUBLIC_KEY;
+    const hasPrivate = !!process.env.VAPID_PRIVATE_KEY;
+    
+    let subscriptionsCount = 0;
+    let userDetails = null;
+
+    if (userId) {
+      const user = await User.findById(userId);
+      if (user) {
+        subscriptionsCount = user.pushSubscriptions ? user.pushSubscriptions.length : 0;
+        userDetails = {
+          id: user._id,
+          name: user.name,
+          email: user.email
+        };
+      }
+    }
+
+    res.json({
+      vapidKeysConfigured: hasPublic && hasPrivate,
+      vapidPublicKeySnippet: process.env.VAPID_PUBLIC_KEY ? `${process.env.VAPID_PUBLIC_KEY.substring(0, 15)}...` : "not set",
+      userIdRequested: userId || "none",
+      userFound: !!userDetails,
+      userDetails,
+      subscriptionsCount
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = { 
   registerUser, 
   loginUser, 
@@ -213,5 +247,6 @@ module.exports = {
   updateUserProfile, 
   getVapidPublicKey, 
   subscribeUser, 
-  unsubscribeUser 
+  unsubscribeUser,
+  getPushStatus
 };

@@ -11,6 +11,7 @@ router.post("/profile", authController.updateUserProfile);
 router.get("/vapid-public-key", authController.getVapidPublicKey);
 router.post("/subscribe", authController.subscribeUser);
 router.post("/unsubscribe", authController.unsubscribeUser);
+router.get("/push-status", authController.getPushStatus);
 router.get("/profile-test", (req, res) => res.json({ status: "Profile router is working" }));
 
 module.exports = router;
