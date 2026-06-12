@@ -1,6 +1,8 @@
 {
   "short_name": "Varta",
   "name": "Varta • Modern Chat",
+  "description": "Secure, real-time chat application with built-in interactive games.",
+  "categories": ["social", "games"],
   "icons": [
     {
       "src": "/fevicon.png",
