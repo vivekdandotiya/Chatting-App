@@ -1,14 +1,8 @@
-[
-  {
-    "relation": [
-      "delegate_permission/common.handle_all_urls"
-    ],
-    "target": {
-      "namespace": "android_app",
-      "package_name": "com.varta.chatapp",
-      "sha256_cert_fingerprints": [
-        "YOUR_SHA256_FINGERPRINT_HERE"
-      ]
-    }
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "app.vercel.chatting_app_beta_umber.twa",
+    "sha256_cert_fingerprints": ["7E:86:37:5A:53:9A:45:4A:7F:72:DB:F8:49:A6:2A:56:9A:93:BE:13:FD:9A:CA:9A:2B:4E:E6:65:17:2C:F5:08"]
   }
-]
+}]
