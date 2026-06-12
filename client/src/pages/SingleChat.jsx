@@ -91,7 +91,7 @@ const VoicePlayer = ({ voiceUrl, isMe }) => {
   );
 };
 
-function SingleChat() {
+function SingleChat({ onlineUsers }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -128,6 +128,23 @@ function SingleChat() {
 
   const bottomRef = useRef();
 
+  const longPressTimeout = useRef(null);
+
+  const handleTouchStart = (e, msgId) => {
+    longPressTimeout.current = setTimeout(() => {
+      setShowPickerFor(msgId);
+      if (navigator.vibrate) {
+        navigator.vibrate(50);
+      }
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimeout.current) {
+      clearTimeout(longPressTimeout.current);
+    }
+  };
+
   const wakeServer = async () => {
     try {
       await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/health`);
@@ -158,6 +175,20 @@ function SingleChat() {
   useEffect(() => {
     Notification.requestPermission();
   }, []);
+
+  // Close reaction picker on click outside
+  useEffect(() => {
+    if (showPickerFor === null) return;
+
+    const handleOutsideClick = (e) => {
+      if (!e.target.closest(".reaction-picker-container") && !e.target.closest(".reaction-trigger-btn")) {
+        setShowPickerFor(null);
+      }
+    };
+
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, [showPickerFor]);
 
   // 🔥 CHECK PERMISSION AND LOAD MESSAGES
   useEffect(() => {
@@ -616,7 +647,23 @@ function SingleChat() {
                {isTargetTyping ? (
                  <p className="text-[11px] text-emerald-400 font-bold animate-pulse">typing...</p>
                ) : (
-                 <p className="text-[11px] text-zinc-500 font-medium">{isAllowed ? 'Active now' : 'Connection info'}</p>
+                 <p className="text-[11px] flex items-center gap-1 font-medium select-none">
+                   {isAllowed ? (
+                     onlineUsers?.[id] ? (
+                       <>
+                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                         <span className="text-emerald-400">Online</span>
+                       </>
+                     ) : (
+                       <>
+                         <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
+                         <span className="text-zinc-500">Offline</span>
+                       </>
+                     )
+                   ) : (
+                     <span className="text-zinc-500">Connection info</span>
+                   )}
+                 </p>
                )}
             </div>
           </div>
@@ -714,36 +761,21 @@ function SingleChat() {
                     <div
                       key={msg._id || i}
                       className={`flex ${isMe ? "justify-end" : "justify-start"} px-2 sm:px-0 relative group mb-3`}
-                      onMouseEnter={() => setHoveredMessageId(msg._id)}
-                      onMouseLeave={() => setHoveredMessageId(null)}
                     >
-                      {/* REACTION PICKER TRIGGER (SMILEY) */}
-                      {hoveredMessageId === msg._id && !isMe && !msg.isDeleted && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
-                          className="p-1.5 text-zinc-500 hover:text-emerald-400 hover:bg-zinc-800/40 rounded-xl transition duration-200 mr-2 flex items-center justify-center"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </button>
-                      )}
-
-                      {/* REACTION PICKER */}
+                      {/* REACTION PICKER POPUP (positioned above the bubble) */}
                       {showPickerFor === msg._id && !msg.isDeleted && (
                         <div 
                           onClick={(e) => e.stopPropagation()}
                           className={`
-                            absolute -top-12 z-20 flex gap-2 bg-[#161616]/95 border border-[#2a2a2a] backdrop-blur-md
-                            p-1.5 rounded-full shadow-2xl transition-all duration-200
-                            ${isMe ? 'right-0' : 'left-0'}
+                            reaction-picker-container absolute -top-12 z-[100] flex gap-2 bg-[#161616] border border-[#2a2a2a] p-1.5 rounded-full shadow-2xl animate-picker
+                            ${isMe ? 'right-4' : 'left-4'}
                           `}
                         >
                           {emojis.map((emoji) => (
                             <button
                               key={emoji}
                               onClick={(e) => { e.stopPropagation(); addReaction(msg._id, emoji); }}
-                              className="hover:scale-125 transition-transform p-1.5 rounded-full hover:bg-white/[0.05]"
+                              className="hover:scale-125 transition-transform p-1 rounded-full text-base"
                             >
                               {emoji}
                             </button>
@@ -751,139 +783,157 @@ function SingleChat() {
                         </div>
                       )}
 
-                      <div 
-                        onClick={() => !msg.isDeleted && setShowPickerFor(showPickerFor === msg._id ? null : msg._id)}
-                        className={`
-                          transition-all relative group/bubble select-text border
-                          ${msg.isDeleted 
-                            ? "bg-[#111111] border-[#2a2a2a] text-zinc-600 rounded-2xl p-3 max-w-[85%] italic text-[13.5px]"
-                            : isMe 
-                              ? "bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-[#e9edef] rounded-tr-none px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_4px_12px_rgba(16,185,129,0.05)] font-normal text-[14px]" 
-                              : "bg-[#161616] border-[#2a2a2a] text-[#e9edef] rounded-tl-none px-4 py-2.5 rounded-2xl max-w-[85%] sm:max-w-md lg:max-w-lg shadow-[0_4px_12px_rgba(0,0,0,0.15)] font-normal text-[14px]"
-                          } 
-                          ${msg.messageType === "file" && msg.fileType === "image" && !msg.isDeleted ? "!p-1 !overflow-hidden" : ""}
-                          animate-message
-                        `}
-                      >
-                        {/* TRASH ICON FOR MESSAGE DELETION */}
-                        {isMe && hoveredMessageId === msg._id && !msg.isDeleted && (
-                          <div className="absolute -left-16 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <button 
-                              onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg._id); }}
-                              className="p-1.5 text-zinc-500 hover:text-red-400 rounded-xl hover:bg-red-500/10 transition"
-                              title="Delete for everyone"
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                            </button>
-                            <button 
-                              className="p-1.5 text-zinc-500 hover:text-emerald-400 rounded-xl hover:bg-[#161616] transition"
-                              onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
-                            >
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
+                      {/* Bubble Wrapper containing the bubble and absolute hover triggers */}
+                      <div className="relative group/bubble flex items-center max-w-[85%] sm:max-w-md lg:max-w-lg">
+                        
+                        {/* Bubble Container */}
+                        <div 
+                          onTouchStart={(e) => handleTouchStart(e, msg._id)}
+                          onTouchEnd={handleTouchEnd}
+                          onTouchMove={handleTouchEnd}
+                          className={`
+                            transition-all relative select-text border
+                            ${msg.isDeleted 
+                              ? "bg-[#111111] border-[#2a2a2a] text-zinc-600 rounded-2xl p-3 w-full italic text-[13.5px]"
+                              : isMe 
+                                ? "bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border-emerald-500/20 text-[#e9edef] rounded-tr-none px-4 py-2.5 rounded-2xl w-full shadow-[0_4px_12px_rgba(16,185,129,0.05)] font-normal text-[14px]" 
+                                : "bg-[#161616] border-[#2a2a2a] text-[#e9edef] rounded-tl-none px-4 py-2.5 rounded-2xl w-full shadow-[0_4px_12px_rgba(0,0,0,0.15)] font-normal text-[14px]"
+                            } 
+                            ${msg.messageType === "file" && msg.fileType === "image" && !msg.isDeleted ? "!p-1 !overflow-hidden" : ""}
+                            animate-message
+                          `}
+                        >
+                          {!isMe && !msg.isDeleted && (
+                            <p className={`text-[10px] text-emerald-400 mb-0.5 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
+                              {msg.senderName}
+                            </p>
+                          )}
 
-                        {!isMe && !msg.isDeleted && (
-                          <p className={`text-[10px] text-emerald-400 mb-0.5 font-bold uppercase tracking-wider ${msg.messageType === "file" && msg.fileType === "image" ? "absolute top-2 left-3 z-10 bg-black/40 px-1 rounded text-white" : ""}`}>
-                            {msg.senderName}
-                          </p>
-                        )}
-
-                        {msg.isDeleted ? (
-                          <div className="flex items-center gap-2 select-none">
-                            <span className="text-[12px]">🚫</span>
-                            <span>This message was deleted</span>
-                          </div>
-                        ) : msg.messageType === "voice" ? (
-                          <VoicePlayer voiceUrl={msg.voiceUrl} isMe={isMe} />
-                        ) : msg.messageType === "file" ? (
-                           <div className="min-w-[150px]">
+                          {msg.isDeleted ? (
+                            <div className="flex items-center gap-2 select-none">
+                              <span className="text-[12px]">🚫</span>
+                              <span>This message was deleted</span>
+                            </div>
+                          ) : msg.messageType === "voice" ? (
+                            <VoicePlayer voiceUrl={msg.voiceUrl} isMe={isMe} />
+                          ) : msg.messageType === "file" ? (
+                            <div className="min-w-[150px]">
                               {msg.fileType === "image" ? (
-                                 <div className="relative group/img">
-                                    <img 
-                                      src={msg.fileUrl} 
-                                      alt="Chat Attachment" 
-                                      className="max-w-full rounded-xl max-h-[300px] object-cover cursor-zoom-in"
-                                      onClick={(e) => { e.stopPropagation(); window.open(msg.fileUrl, '_blank'); }}
-                                    />
-                                    <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white">
-                                       <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                       {isMe && (
-                                          <span className={msg.status === "read" ? "text-emerald-400" : "text-white/70"}>
-                                             {msg.status === "sent" ? "✓" : "✓✓"}
-                                          </span>
-                                       )}
-                                    </div>
-                                 </div>
+                                <div className="relative group/img">
+                                  <img 
+                                    src={msg.fileUrl} 
+                                    alt="Chat Attachment" 
+                                    className="max-w-full rounded-xl max-h-[300px] object-cover cursor-zoom-in"
+                                    onClick={(e) => { e.stopPropagation(); window.open(msg.fileUrl, '_blank'); }}
+                                  />
+                                  <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white">
+                                    <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                    {isMe && (
+                                      <span className={msg.status === "read" ? "text-emerald-400" : "text-white/70"}>
+                                        {msg.status === "sent" ? "✓" : "✓✓"}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
                               ) : (
-                                 <div className="flex items-center gap-3 p-1.5 bg-[#111111] border border-[#2a2a2a] rounded-xl">
-                                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-zinc-900 border border-[#2a2a2a]">
-                                       <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                       </svg>
-                                    </div>
-                                    <div className="flex-1 overflow-hidden">
-                                       <p className="text-xs font-bold truncate pr-2 text-white">{msg.fileName || "Document"}</p>
-                                       <a 
-                                         href={msg.fileUrl} 
-                                         target="_blank" 
-                                         rel="noopener noreferrer" 
-                                         className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:underline"
-                                         onClick={(e) => e.stopPropagation()}
-                                       >
-                                         Download
-                                       </a>
-                                    </div>
-                                 </div>
+                                <div className="flex items-center gap-3 p-1.5 bg-[#111111] border border-[#2a2a2a] rounded-xl">
+                                  <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-zinc-900 border border-[#2a2a2a]">
+                                    <svg className="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                    </svg>
+                                  </div>
+                                  <div className="flex-1 overflow-hidden">
+                                    <p className="text-xs font-bold truncate pr-2 text-white">{msg.fileName || "Document"}</p>
+                                    <a 
+                                      href={msg.fileUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-[10px] font-black uppercase tracking-widest text-emerald-400 hover:text-emerald-300 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      Download
+                                    </a>
+                                  </div>
+                                </div>
                               )}
-                           </div>
-                        ) : (
-                          <p className="break-words leading-relaxed whitespace-pre-line text-zinc-100">{msg.content}</p>
-                        )}
+                            </div>
+                          ) : (
+                            <p className="break-words leading-relaxed whitespace-pre-line text-zinc-100">{msg.content}</p>
+                          )}
 
-                        {/* TIME & DELIVERY STATUS */}
-                        {(!msg.messageType || msg.messageType !== "file" || msg.fileType !== "image" || msg.isDeleted) ? (
-                           <div className={`text-[9px] flex gap-1 justify-end items-center mt-1 select-none font-medium ${msg.isDeleted ? 'text-zinc-700' : isMe ? 'text-zinc-400' : 'text-zinc-500'}`}>
-                             <span>
-                               {new Date(msg.createdAt).toLocaleTimeString([], {
-                                 hour: "2-digit",
-                                 minute: "2-digit",
-                               })}
-                             </span>
+                          {/* TIME & STATUS */}
+                          {(!msg.messageType || msg.messageType !== "file" || msg.fileType !== "image" || msg.isDeleted) ? (
+                            <div className={`text-[9px] flex gap-1 justify-end items-center mt-1 select-none font-medium ${msg.isDeleted ? 'text-zinc-700' : isMe ? 'text-zinc-400' : 'text-zinc-500'}`}>
+                              <span>
+                                {new Date(msg.createdAt).toLocaleTimeString([], {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })}
+                              </span>
 
-                             {isMe && !msg.isDeleted && (
-                               <span className="text-[11px] font-semibold leading-none">
-                                 {msg.status === "sent" && "✓"}
-                                 {msg.status === "delivered" && "✓✓"}
-                                 {msg.status === "read" && <span className="text-emerald-400">✓✓</span>}
-                               </span>
-                             )}
-                           </div>
-                        ) : null}
-
-                        {/* DISPLAY REACTIONS */}
-                        {msg.reactions && msg.reactions.length > 0 && !msg.isDeleted && (
-                          <div className={`
-                            absolute -bottom-4 flex -space-x-1 items-center z-10 select-none
-                            ${isMe ? 'right-2' : 'left-2'}
-                          `}>
-                            <div className="flex bg-[#161616] border border-[#2a2a2a] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
-                              {msg.reactions.map((r, idx) => (
-                                <span key={idx} className="text-[12px]">
-                                  {r.emoji}
-                                </span>
-                              ))}
-                              {msg.reactions.length > 1 && (
-                                <span className="ml-1 text-[9px] text-zinc-500 font-bold flex items-center">
-                                  {msg.reactions.length}
+                              {isMe && !msg.isDeleted && (
+                                <span className="text-[11px] font-semibold leading-none">
+                                  {msg.status === "sent" && "✓"}
+                                  {msg.status === "delivered" && "✓✓"}
+                                  {msg.status === "read" && <span className="text-emerald-400">✓✓</span>}
                                 </span>
                               )}
                             </div>
+                          ) : null}
+
+                          {/* REACTIONS FLOATING AT BOTTOM */}
+                          {msg.reactions && msg.reactions.length > 0 && !msg.isDeleted && (
+                            <div className={`
+                              absolute -bottom-4 flex -space-x-1 items-center z-10 select-none
+                              ${isMe ? 'right-2' : 'left-2'}
+                            `}>
+                              <div className="flex bg-[#161616] border border-[#2a2a2a] px-1.5 py-0.5 rounded-full shadow-lg scale-90 sm:scale-100">
+                                {msg.reactions.map((r, idx) => (
+                                  <span key={idx} className="text-[12px]">
+                                    {r.emoji}
+                                  </span>
+                                ))}
+                                {msg.reactions.length > 1 && (
+                                  <span className="ml-1 text-[9px] text-zinc-500 font-bold flex items-center">
+                                    {msg.reactions.length}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* ABSOLUTE HOVER ACTIONS LIST (WhatsApp style next to bubble) */}
+                        {!msg.isDeleted && (
+                          <div 
+                            className={`
+                              absolute top-1/2 -translate-y-1/2 flex items-center gap-1.5 opacity-0 group-hover/bubble:opacity-100 transition-opacity z-20
+                              ${isMe ? 'right-[calc(100%+8px)] flex-row-reverse' : 'left-[calc(100%+8px)] flex-row'}
+                            `}
+                          >
+                            {/* Emoji trigger */}
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setShowPickerFor(showPickerFor === msg._id ? null : msg._id); }}
+                              className="reaction-trigger-btn w-7 h-7 rounded-full text-zinc-400 hover:text-[#00a884] hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                              title="React"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </button>
+
+                            {/* Delete trigger (only for outgoing messages) */}
+                            {isMe && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg._id); }}
+                                className="w-7 h-7 rounded-full text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                                title="Delete message"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
@@ -984,6 +1034,13 @@ function SingleChat() {
         }
         .animate-message {
           animation: messageFadeIn 0.18s cubic-bezier(0.1, 1, 0.1, 1) forwards;
+        }
+        @keyframes pickerBounceUp {
+          0% { opacity: 0; transform: scale(0.9) translateY(8px); }
+          100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .animate-picker {
+          animation: pickerBounceUp 0.15s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
         }
       `}</style>
     </div>

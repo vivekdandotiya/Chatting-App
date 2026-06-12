@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import Sidebar from "../components/Sidebar";
@@ -62,8 +62,13 @@ function Chat() {
   const location = useLocation();
   const [users, setUsers] = useState([]);
   const [unread, setUnread] = useState({});
-  const [onlineUsers, setOnlineUsers] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState({});
   const [loading, setLoading] = useState(true);
+
+  const activeChatIdRef = useRef(id);
+  useEffect(() => {
+    activeChatIdRef.current = id;
+  }, [id]);
   const [isServerReady, setIsServerReady] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
 
@@ -128,9 +133,18 @@ function Chat() {
 
   // 🔥 SOCKET SETUP
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser?._id) return;
 
-    socket.emit("setup", currentUser._id);
+    const handleConnect = () => {
+      socket.emit("setup", currentUser._id);
+    };
+
+    socket.on("connect", handleConnect);
+    
+    // Proactively setup if already connected
+    if (socket.connected) {
+      handleConnect();
+    }
 
     socket.on("onlineUsers", (usersList) => {
       const onlineMap = {};
@@ -139,7 +153,7 @@ function Chat() {
     });
 
     socket.on("receiveMessage", (msg) => {
-      if (msg.sender !== currentUser._id && msg.sender !== id) {
+      if (msg.sender !== currentUser._id && msg.sender !== activeChatIdRef.current) {
         setUnread((prev) => ({
           ...prev,
           [msg.sender]: (prev[msg.sender] || 0) + 1,
@@ -166,6 +180,7 @@ function Chat() {
     });
 
     return () => {
+      socket.off("connect", handleConnect);
       socket.off("onlineUsers");
       socket.off("receiveMessage");
       socket.off("receiveInvite");
@@ -173,7 +188,7 @@ function Chat() {
       socket.off("userProfileUpdated");
     };
 
-  }, [id]);
+  }, [currentUser?._id]);
 
   const handleCloseGame = () => {
     const searchParams = new URLSearchParams(window.location.search);
@@ -232,7 +247,7 @@ function Chat() {
             {activeGame ? (
               <GameZone game={activeGame} />
             ) : id ? (
-              <SingleChat key={id} />
+              <SingleChat key={id} onlineUsers={onlineUsers} />
             ) : (
               <VartaHome />
             )}
@@ -243,7 +258,7 @@ function Chat() {
         activeGame ? (
           <GameZone game={activeGame} onClose={handleCloseGame} />
         ) : id ? (
-          <SingleChat />
+          <SingleChat key={id} onlineUsers={onlineUsers} />
         ) : (
           <Sidebar
             users={users}
