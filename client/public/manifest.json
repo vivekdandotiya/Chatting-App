@@ -3,16 +3,42 @@
   "name": "Varta • Modern Chat",
   "description": "Secure, real-time chat application with built-in interactive games.",
   "categories": ["social", "games"],
+  "id": "/",
+  "prefer_related_applications": false,
   "icons": [
     {
-      "src": "/fevicon.png",
+      "src": "/pwa-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/fevicon.png",
+      "src": "/pwa-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/varta_chat.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Varta Chat Dashboard"
+    },
+    {
+      "src": "/varta_login.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Varta Mobile Login"
     }
   ],
   "start_url": "/",
