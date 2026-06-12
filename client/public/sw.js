@@ -1,4 +1,4 @@
-const CACHE_NAME = 'varta-cache-v1';
+const CACHE_NAME = 'varta-cache-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -44,6 +44,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // 🌐 Navigation requests (HTML pages): Network-First
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse.status === 200) {
+            const responseClone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request) || caches.match('/');
+        })
+    );
+    return;
+  }
+
+  // 📦 Static Assets: Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
