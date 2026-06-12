@@ -1,7 +1,9 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
+  const navigate = useNavigate();
   const [name, setName] = useState(user?.name || "");
   const [profilePic, setProfilePic] = useState(user?.profilePic || "");
   const [uploading, setUploading] = useState(false);
@@ -67,6 +69,16 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("user");
+    if (socket) {
+      socket.disconnect();
+    }
+    onClose();
+    navigate("/");
+    window.location.reload();
   };
 
   const getInitials = (n) => n?.split(" ").map(x => x[0]).join("").toUpperCase() || "?";
@@ -146,19 +158,31 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
           {error && <p className="text-red-400 text-sm font-medium text-center animate-slideUp">{error}</p>}
 
           {/* ACTIONS */}
-          <div className="flex gap-4 pt-4">
+          <div className="space-y-3 pt-2">
+            <div className="flex gap-3">
+              <button 
+                onClick={onClose}
+                className="flex-1 py-3 bg-[#1c1c1c] text-white font-bold rounded-xl hover:bg-[#252528] transition duration-300 border border-[#2a2a2a] text-xs uppercase tracking-wider active:scale-[0.98]"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={saving || uploading}
+                className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-bold rounded-xl hover:brightness-110 transition duration-300 disabled:opacity-50 flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
+              >
+                {saving ? <div className="w-4 h-4 border-2 border-black/60 border-t-transparent rounded-full animate-spin"></div> : "Save Changes"}
+              </button>
+            </div>
+            
             <button 
-              onClick={onClose}
-              className="flex-1 py-3.5 bg-[#1c1c1c] text-white font-bold rounded-xl hover:bg-[#252528] transition duration-300 border border-[#2a2a2a] text-sm active:scale-[0.98]"
+              onClick={handleLogout}
+              className="w-full py-3 bg-red-950/20 border border-red-500/20 hover:border-red-500/40 hover:bg-red-950/30 text-red-400 font-bold rounded-xl transition duration-300 text-xs uppercase tracking-wider active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Cancel
-            </button>
-            <button 
-              onClick={handleSave}
-              disabled={saving || uploading}
-              className="flex-1 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-bold rounded-xl hover:brightness-110 transition duration-300 disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-lg shadow-emerald-500/10 active:scale-[0.98]"
-            >
-              {saving ? <div className="w-5 h-5 border-2 border-black/60 border-t-transparent rounded-full animate-spin"></div> : "Save Changes"}
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span>Logout Account</span>
             </button>
           </div>
         </div>
