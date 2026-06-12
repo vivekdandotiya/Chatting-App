@@ -5,6 +5,15 @@
   "categories": ["social", "games"],
   "id": "/",
   "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.varta.chatapp",
+      "id": "com.varta.chatapp"
+    }
+  ],
+  "iarc_rating_id": "123456",
+  "display_override": ["window-controls-overlay", "minimal-ui"],
   "icons": [
     {
       "src": "/pwa-192.png",
