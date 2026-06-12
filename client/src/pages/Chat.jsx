@@ -184,6 +184,15 @@ function Chat() {
       );
       const filtered = res.data.filter((u) => u._id !== currentUser._id);
       setUsers(filtered);
+
+      // Populate unread count badges from the server data
+      const serverUnread = {};
+      filtered.forEach((u) => {
+        if (u.unreadCount > 0) {
+          serverUnread[u._id] = u.unreadCount;
+        }
+      });
+      setUnread((prev) => ({ ...prev, ...serverUnread }));
     } catch (err) {
       console.log("Users error:", err);
     } finally {

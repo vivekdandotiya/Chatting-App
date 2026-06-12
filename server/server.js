@@ -151,12 +151,36 @@ app.get("/api/users", async (req, res) => {
     
     if (!userId) {
       return res.json(
-        users.map((u) => ({ ...u.toObject(), connectionStatus: "none" }))
+        users.map((u) => ({ ...u.toObject(), connectionStatus: "none", unreadCount: 0 }))
       );
     }
 
     const connections = await Connection.find({
       $or: [{ sender: userId }, { receiver: userId }],
+    });
+
+    // Count unread messages for each sender to this receiver
+    const unreadCounts = await Message.aggregate([
+      { 
+        $match: { 
+          receiver: userId, 
+          status: { $ne: "read" },
+          isDeleted: { $ne: true }
+        } 
+      },
+      { 
+        $group: { 
+          _id: "$sender", 
+          count: { $sum: 1 } 
+        } 
+      }
+    ]);
+
+    const unreadMap = {};
+    unreadCounts.forEach((item) => {
+      if (item._id) {
+        unreadMap[item._id] = item.count;
+      }
     });
 
     const usersWithStatus = users.map((u) => {
@@ -187,6 +211,7 @@ app.get("/api/users", async (req, res) => {
       }
 
       userObj.connectionStatus = connectionStatus;
+      userObj.unreadCount = unreadMap[userObj._id.toString()] || 0;
       return userObj;
     });
 
