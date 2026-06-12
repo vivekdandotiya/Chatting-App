@@ -4,6 +4,9 @@
   "description": "Secure, real-time chat application with built-in interactive games.",
   "categories": ["social", "games"],
   "id": "/",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
   "prefer_related_applications": false,
   "related_applications": [
     {
