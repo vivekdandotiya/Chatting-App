@@ -17,7 +17,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
   const [isStatusModalOpen, setIsStatusModalOpen] = useState(false);
   const [activeStory, setActiveStory] = useState(null); // Story currently being viewed in StatusViewer
   
-  const [currentUser, setCurrentUser] = useState(JSON.parse(sessionStorage.getItem("user")));
+  const [currentUser, setCurrentUser] = useState(JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user")));
   const [stories, setStories] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
 

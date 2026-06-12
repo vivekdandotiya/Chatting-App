@@ -145,4 +145,73 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, sendOTP, updateUserProfile };
+const getVapidPublicKey = async (req, res) => {
+  try {
+    res.json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const subscribeUser = async (req, res) => {
+  try {
+    const { userId, subscription } = req.body;
+    if (!userId || !subscription) {
+      return res.status(400).json({ message: "UserId and Subscription are required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Check if subscription already exists to avoid duplicates
+    const exists = user.pushSubscriptions.some(
+      (sub) => sub.endpoint === subscription.endpoint
+    );
+
+    if (!exists) {
+      user.pushSubscriptions.push(subscription);
+      await user.save();
+    }
+
+    res.status(200).json({ message: "Subscribed successfully" });
+  } catch (error) {
+    console.error("SUBSCRIBE ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const unsubscribeUser = async (req, res) => {
+  try {
+    const { userId, endpoint } = req.body;
+    if (!userId || !endpoint) {
+      return res.status(400).json({ message: "UserId and Endpoint are required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.pushSubscriptions = user.pushSubscriptions.filter(
+      (sub) => sub.endpoint !== endpoint
+    );
+    await user.save();
+
+    res.status(200).json({ message: "Unsubscribed successfully" });
+  } catch (error) {
+    console.error("UNSUBSCRIBE ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+module.exports = { 
+  registerUser, 
+  loginUser, 
+  sendOTP, 
+  updateUserProfile, 
+  getVapidPublicKey, 
+  subscribeUser, 
+  unsubscribeUser 
+};

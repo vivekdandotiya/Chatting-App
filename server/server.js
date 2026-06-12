@@ -4,6 +4,40 @@ const http = require("http");
 const { Server } = require("socket.io");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const webpush = require("web-push");
+const fs = require("fs");
+const path = require("path");
+
+// ✅ AUTO-GENERATE VAPID KEYS FOR LOCAL DEV
+if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) {
+  console.log("🔑 VAPID Keys not found in environment. Generating new ones...");
+  const keys = webpush.generateVAPIDKeys();
+  process.env.VAPID_PUBLIC_KEY = keys.publicKey;
+  process.env.VAPID_PRIVATE_KEY = keys.privateKey;
+
+  const envPath = path.join(__dirname, ".env");
+  try {
+    let envContent = "";
+    if (fs.existsSync(envPath)) {
+      envContent = fs.readFileSync(envPath, "utf8");
+    }
+    if (envContent && !envContent.endsWith("\n")) {
+      envContent += "\n";
+    }
+    envContent += `VAPID_PUBLIC_KEY=${keys.publicKey}\nVAPID_PRIVATE_KEY=${keys.privateKey}\n`;
+    fs.writeFileSync(envPath, envContent, "utf8");
+    console.log("✅ VAPID Keys successfully generated and saved to server/.env");
+  } catch (err) {
+    console.error("❌ Failed to write VAPID keys to .env file:", err.message);
+  }
+}
+
+// ✅ INITIALIZE WEB PUSH
+webpush.setVapidDetails(
+  `mailto:${process.env.EMAIL_USER || "admin@example.com"}`,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 
 const Message = require("./models/Message");
 const User = require("./models/User");
@@ -250,13 +284,61 @@ io.on("connection", (socket) => {
       status: "sent",
     });
 
-
     const receiverSocket = users[data.receiver];
     const senderSocket = users[data.sender];
 
     // send to receiver
     if (receiverSocket) {
       io.to(receiverSocket).emit("receiveMessage", message);
+    } else {
+      // Receiver is offline/closed: send Web Push notification
+      try {
+        const senderUser = await User.findById(data.sender);
+        const senderName = senderUser ? senderUser.name : "New Message";
+        const senderPic = senderUser ? senderUser.profilePic : "";
+
+        const receiverUser = await User.findById(data.receiver);
+        if (receiverUser && receiverUser.pushSubscriptions && receiverUser.pushSubscriptions.length > 0) {
+          let pushBody = "You have a new message";
+          if (data.messageType === "text") {
+            pushBody = data.content;
+          } else if (data.messageType === "voice") {
+            pushBody = "🎙️ Sent a voice message";
+          } else if (data.messageType === "image") {
+            pushBody = "📷 Sent an image";
+          } else if (data.messageType === "file") {
+            pushBody = `📁 Sent a file: ${data.fileName || "attachment"}`;
+          }
+
+          const notificationPayload = JSON.stringify({
+            title: senderName,
+            body: pushBody,
+            icon: senderPic || "/fevicon.png",
+            url: `/chat/${data.sender}`,
+            senderId: data.sender,
+            tag: "varta-message"
+          });
+
+          const sendPromises = receiverUser.pushSubscriptions.map(async (sub) => {
+            try {
+              await webpush.sendNotification(sub, notificationPayload);
+            } catch (err) {
+              // Delete expired/invalid subscriptions (404 or 410)
+              if (err.statusCode === 410 || err.statusCode === 404) {
+                console.log(`Removing expired subscription: ${sub.endpoint}`);
+                await User.findByIdAndUpdate(data.receiver, {
+                  $pull: { pushSubscriptions: { endpoint: sub.endpoint } }
+                });
+              } else {
+                console.error("Push notification send error:", err);
+              }
+            }
+          });
+          await Promise.all(sendPromises);
+        }
+      } catch (err) {
+        console.error("Failed to process push notification:", err);
+      }
     }
 
     // send delivered tick

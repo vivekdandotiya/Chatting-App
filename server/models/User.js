@@ -9,7 +9,15 @@ const userSchema = new mongoose.Schema(
     profilePic: { type: String, default: "" },
 
     lastSeen: Date,
-
+    pushSubscriptions: [
+      {
+        endpoint: { type: String, required: true },
+        keys: {
+          p256dh: { type: String, required: true },
+          auth: { type: String, required: true }
+        }
+      }
+    ]
   },
   { timestamps: true }
 );

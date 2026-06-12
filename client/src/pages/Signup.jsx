@@ -244,7 +244,11 @@ function Signup() {
 
   React.useEffect(() => {
     wakeServer();
-  }, []);
+    const user = localStorage.getItem("user") || sessionStorage.getItem("user");
+    if (user) {
+      navigate("/chat");
+    }
+  }, [navigate]);
 
   React.useEffect(() => {
     let timer;
@@ -326,6 +330,7 @@ function Signup() {
         { name, email, password, otp }
       );
 
+      localStorage.setItem("user", JSON.stringify(res.data));
       sessionStorage.setItem("user", JSON.stringify(res.data));
       navigate("/chat");
     } catch (err) {

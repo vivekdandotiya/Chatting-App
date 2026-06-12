@@ -95,7 +95,7 @@ function SingleChat({ onlineUsers }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const user = JSON.parse(sessionStorage.getItem("user"));
+  const user = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
 
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");

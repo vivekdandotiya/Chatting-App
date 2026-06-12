@@ -97,9 +97,10 @@ function Home() {
 
   useEffect(() => {
     // Check if session user exists
-    const user = sessionStorage.getItem("user");
+    const user = localStorage.getItem("user") || sessionStorage.getItem("user");
     if (user) {
       setIsLoggedIn(true);
+      navigate("/chat");
     }
 
     // Scroll listener for sticky header styling

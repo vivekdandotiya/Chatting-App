@@ -74,7 +74,7 @@ function Chat() {
 
   const activeGame = new URLSearchParams(location.search).get("game");
 
-  const currentUser = JSON.parse(sessionStorage.getItem("user"));
+  const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
 
   const wakeServer = async () => {
     try {
@@ -86,8 +86,75 @@ function Chat() {
   };
 
   useEffect(() => {
+    if (!currentUser) {
+      navigate("/login");
+      return;
+    }
+
     wakeServer();
-  }, []);
+
+    // 🔔 SUBSCRIBE TO PUSH NOTIFICATIONS
+    const subscribeToPush = async () => {
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        console.log("Push notifications are not supported on this device/browser.");
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.ready;
+        
+        // Request Permission
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          console.log("Push notifications permission denied.");
+          return;
+        }
+
+        // Get public VAPID key
+        const keyRes = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/auth/vapid-public-key`);
+        const vapidPublicKey = keyRes.data.publicKey;
+
+        if (!vapidPublicKey) {
+          console.log("No VAPID public key received.");
+          return;
+        }
+
+        // Convert key helper
+        const urlBase64ToUint8Array = (base64String) => {
+          const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+          const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+          const rawData = window.atob(base64);
+          const outputArray = new Uint8Array(rawData.length);
+          for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+          }
+          return outputArray;
+        };
+
+        const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
+
+        // Check for existing subscription or create a new one
+        let subscription = await registration.pushManager.getSubscription();
+        if (!subscription) {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedKey
+          });
+        }
+
+        // Send to backend
+        await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/subscribe`, {
+          userId: currentUser._id,
+          subscription
+        });
+        console.log("✅ Push notification subscription successful!");
+      } catch (err) {
+        console.error("❌ Failed to subscribe to push notifications:", err);
+      }
+    };
+
+    subscribeToPush();
+  }, [currentUser, navigate]);
 
   const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 768);
 

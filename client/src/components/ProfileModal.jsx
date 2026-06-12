@@ -51,6 +51,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
 
       // Update local storage
       const updatedUser = { ...user, name: res.data.name, profilePic: res.data.profilePic };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
       sessionStorage.setItem("user", JSON.stringify(updatedUser));
 
       // Broadcast to others via socket
@@ -72,6 +73,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("user");
     sessionStorage.removeItem("user");
     if (socket) {
       socket.disconnect();
