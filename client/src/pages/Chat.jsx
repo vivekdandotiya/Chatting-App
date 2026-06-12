@@ -133,8 +133,35 @@ function Chat() {
 
         const convertedKey = urlBase64ToUint8Array(vapidPublicKey);
 
-        // Check for existing subscription or create a new one
+        // Check for existing subscription
         let subscription = await registration.pushManager.getSubscription();
+
+        if (subscription) {
+          // Verify if VAPID key matches. If not, unsubscribe and re-subscribe
+          let keyMismatch = false;
+          if (subscription.options && subscription.options.applicationServerKey) {
+            const currentKey = new Uint8Array(subscription.options.applicationServerKey);
+            if (currentKey.length !== convertedKey.length) {
+              keyMismatch = true;
+            } else {
+              for (let i = 0; i < convertedKey.length; i++) {
+                if (currentKey[i] !== convertedKey[i]) {
+                  keyMismatch = true;
+                  break;
+                }
+              }
+            }
+          } else {
+            keyMismatch = true;
+          }
+
+          if (keyMismatch) {
+            console.log("🔄 VAPID key mismatch detected. Re-subscribing...");
+            await subscription.unsubscribe();
+            subscription = null;
+          }
+        }
+
         if (!subscription) {
           subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
