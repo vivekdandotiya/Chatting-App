@@ -17,7 +17,11 @@ const userSchema = new mongoose.Schema(
           auth: { type: String, required: true }
         }
       }
-    ]
+    ],
+    appLockPassword: {
+      hour: { type: Number, default: null },
+      minute: { type: Number, default: null }
+    }
   },
   { timestamps: true }
 );

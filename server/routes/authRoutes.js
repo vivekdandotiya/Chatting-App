@@ -12,6 +12,8 @@ router.get("/vapid-public-key", authController.getVapidPublicKey);
 router.post("/subscribe", authController.subscribeUser);
 router.post("/unsubscribe", authController.unsubscribeUser);
 router.get("/push-status", authController.getPushStatus);
+router.post("/set-lock", authController.setLockPassword);
+router.post("/remove-lock", authController.removeLockPassword);
 router.get("/profile-test", (req, res) => res.json({ status: "Profile router is working" }));
 
 module.exports = router;

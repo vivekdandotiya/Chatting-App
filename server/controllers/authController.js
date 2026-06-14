@@ -90,6 +90,7 @@ const registerUser = async (req, res) => {
       name: user.name,
       email: user.email,
       token: generateToken(user._id),
+      appLockPassword: user.appLockPassword || { hour: null, minute: null }
     });
   } catch (error) {
     console.log("REGISTER ERROR:", error);
@@ -109,6 +110,7 @@ const loginUser = async (req, res) => {
         name: user.name,
         email: user.email,
         token: generateToken(user._id),
+        appLockPassword: user.appLockPassword || { hour: null, minute: null }
       });
     } else {
       return res.status(401).json({ message: "Invalid credentials" });
@@ -138,6 +140,7 @@ const updateUserProfile = async (req, res) => {
       name: user.name,
       email: user.email,
       profilePic: user.profilePic,
+      appLockPassword: user.appLockPassword || { hour: null, minute: null }
     });
   } catch (error) {
     console.log("UPDATE PROFILE ERROR:", error);
@@ -240,6 +243,56 @@ const getPushStatus = async (req, res) => {
   }
 };
 
+const setLockPassword = async (req, res) => {
+  try {
+    const { userId, hour, minute } = req.body;
+    if (!userId || hour === undefined || minute === undefined) {
+      return res.status(400).json({ message: "UserId, hour, and minute are required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.appLockPassword = { hour, minute };
+    await user.save();
+
+    res.status(200).json({
+      message: "App lock password set successfully",
+      appLockPassword: user.appLockPassword
+    });
+  } catch (error) {
+    console.error("SET LOCK ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const removeLockPassword = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ message: "UserId is required" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.appLockPassword = { hour: null, minute: null };
+    await user.save();
+
+    res.status(200).json({
+      message: "App lock password removed successfully",
+      appLockPassword: user.appLockPassword
+    });
+  } catch (error) {
+    console.error("REMOVE LOCK ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = { 
   registerUser, 
   loginUser, 
@@ -248,5 +301,7 @@ module.exports = {
   getVapidPublicKey, 
   subscribeUser, 
   unsubscribeUser,
-  getPushStatus
+  getPushStatus,
+  setLockPassword,
+  removeLockPassword
 };

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import AppLockScreen from "./AppLockScreen";
 
 const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
   const navigate = useNavigate();
@@ -9,7 +10,8 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const fileInputRef = useRef(null);
+  const [lockMode, setLockMode] = useState(null); // null, "setup", "disable"
+  const hasLock = user?.appLockPassword && user.appLockPassword.hour !== null && user.appLockPassword.minute !== null;
 
   if (!isOpen) return null;
 
@@ -75,12 +77,63 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
   const handleLogout = () => {
     localStorage.removeItem("user");
     sessionStorage.removeItem("user");
+    sessionStorage.removeItem("varta_unlocked");
     if (socket) {
       socket.disconnect();
     }
     onClose();
     navigate("/");
     window.location.reload();
+  };
+
+  const handleToggleLockClick = () => {
+    if (hasLock) {
+      setLockMode("disable");
+    } else {
+      setLockMode("setup");
+    }
+  };
+
+  const handleSaveLock = async (password) => {
+    try {
+      setError("");
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/set-lock`, {
+        userId: user._id,
+        hour: password.hour,
+        minute: password.minute
+      });
+
+      const updatedUser = { ...user, appLockPassword: res.data.appLockPassword };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      sessionStorage.setItem("varta_unlocked", "true");
+
+      onUpdate(updatedUser);
+      setLockMode(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to set app lock.");
+    }
+  };
+
+  const handleRemoveLock = async () => {
+    try {
+      setError("");
+      const res = await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/remove-lock`, {
+        userId: user._id
+      });
+
+      const updatedUser = { ...user, appLockPassword: res.data.appLockPassword };
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      sessionStorage.setItem("user", JSON.stringify(updatedUser));
+      sessionStorage.removeItem("varta_unlocked");
+
+      onUpdate(updatedUser);
+      setLockMode(null);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to disable app lock.");
+    }
   };
 
   const getInitials = (n) => n?.split(" ").map(x => x[0]).join("").toUpperCase() || "?";
@@ -178,6 +231,21 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
             </div>
             
             <button 
+              type="button"
+              onClick={handleToggleLockClick}
+              className={`w-full py-3 ${
+                hasLock 
+                  ? "bg-amber-950/20 border border-amber-500/20 hover:border-amber-500/40 hover:bg-amber-950/30 text-amber-400"
+                  : "bg-emerald-950/20 border border-emerald-500/20 hover:border-emerald-500/40 hover:bg-emerald-950/30 text-emerald-400"
+              } font-bold rounded-xl transition duration-300 text-xs uppercase tracking-wider active:scale-[0.98] flex items-center justify-center gap-2`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              <span>{hasLock ? "Disable App Lock" : "Enable App Lock"}</span>
+            </button>
+
+            <button 
               onClick={handleLogout}
               className="w-full py-3 bg-red-950/20 border border-red-500/20 hover:border-red-500/40 hover:bg-red-950/30 text-red-400 font-bold rounded-xl transition duration-300 text-xs uppercase tracking-wider active:scale-[0.98] flex items-center justify-center gap-2"
             >
@@ -187,6 +255,23 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
               <span>Logout Account</span>
             </button>
           </div>
+
+          {lockMode === "setup" && (
+            <AppLockScreen
+              mode="setup"
+              onSave={handleSaveLock}
+              onCancel={() => setLockMode(null)}
+            />
+          )}
+
+          {lockMode === "disable" && (
+            <AppLockScreen
+              mode="disable"
+              targetPassword={user?.appLockPassword}
+              onUnlock={handleRemoveLock}
+              onCancel={() => setLockMode(null)}
+            />
+          )}
         </div>
       </div>
     </div>

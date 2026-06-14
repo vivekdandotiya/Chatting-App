@@ -5,6 +5,7 @@ import Sidebar from "../components/Sidebar";
 import SingleChat from "./SingleChat";
 import GameZone from "../components/GameZone";
 import io from "socket.io-client";
+import AppLockScreen from "../components/AppLockScreen";
 
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
@@ -75,6 +76,7 @@ function Chat() {
   const activeGame = new URLSearchParams(location.search).get("game");
 
   const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
+  const [sessionUnlocked, setSessionUnlocked] = useState(sessionStorage.getItem("varta_unlocked") === "true");
 
   const wakeServer = async () => {
     try {
@@ -298,6 +300,21 @@ function Chat() {
     searchParams.delete("game");
     navigate(`/chat${searchParams.toString() ? `?${searchParams.toString()}` : ''}`);
   };
+
+  const hasLock = currentUser?.appLockPassword && currentUser.appLockPassword.hour !== null && currentUser.appLockPassword.minute !== null;
+
+  if (hasLock && !sessionUnlocked) {
+    return (
+      <AppLockScreen
+        mode="unlock"
+        targetPassword={currentUser.appLockPassword}
+        onUnlock={() => {
+          sessionStorage.setItem("varta_unlocked", "true");
+          setSessionUnlocked(true);
+        }}
+      />
+    );
+  }
 
   if (loading) {
     return (
