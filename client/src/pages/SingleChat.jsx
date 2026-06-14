@@ -127,6 +127,8 @@ function SingleChat({ onlineUsers }) {
   const emojis = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
 
   const bottomRef = useRef();
+  const isInitialLoadRef = useRef(true);
+  const prevMessagesLengthRef = useRef(0);
 
   const longPressTimeout = useRef(null);
 
@@ -351,9 +353,26 @@ function SingleChat({ onlineUsers }) {
     };
   }, [isAllowed, id]);
 
-  // 🔥 AUTO SCROLL
+  // Reset initial load tracking when conversation changes
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    isInitialLoadRef.current = true;
+    prevMessagesLengthRef.current = 0;
+  }, [id]);
+
+  // 🔥 AUTO SCROLL (WhatsApp style: instant on open, smooth only on new messages)
+  useEffect(() => {
+    if (!messages || messages.length === 0) return;
+
+    if (isInitialLoadRef.current) {
+      bottomRef.current?.scrollIntoView({ behavior: "auto" });
+      isInitialLoadRef.current = false;
+      prevMessagesLengthRef.current = messages.length;
+    } else {
+      if (messages.length > prevMessagesLengthRef.current) {
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+      prevMessagesLengthRef.current = messages.length;
+    }
   }, [messages]);
 
   // 🔥 SEND MESSAGE
