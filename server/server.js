@@ -335,10 +335,24 @@ io.on("connection", (socket) => {
             pushBody = `📁 Sent a file: ${data.fileName || "attachment"}`;
           }
 
+          let notificationTitle = senderName;
+          let notificationBody = pushBody;
+          let notificationIcon = senderPic || "/fevicon.png";
+
+          const hasLock = receiverUser.appLockPassword && 
+                          receiverUser.appLockPassword.hour !== null && 
+                          receiverUser.appLockPassword.minute !== null;
+
+          if (hasLock) {
+            notificationTitle = "Focus Study Clock";
+            notificationBody = "Study Time";
+            notificationIcon = "/fevicon.png";
+          }
+
           const notificationPayload = JSON.stringify({
-            title: senderName,
-            body: pushBody,
-            icon: senderPic || "/fevicon.png",
+            title: notificationTitle,
+            body: notificationBody,
+            icon: notificationIcon,
             url: `/chat/${data.sender}`,
             senderId: data.sender,
             tag: "varta-message"
