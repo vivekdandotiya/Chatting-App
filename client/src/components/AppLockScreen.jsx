@@ -294,19 +294,20 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
   const hrAngle = (renderHr % 12) * 30 + renderMin * 0.5;
   const secAngle = renderSec * 6;
 
-  // Generate ticks for the clock face (12 hours)
-  const ticks = Array.from({ length: 12 }).map((_, i) => {
-    const angle = i * 30;
-    const isPrimary = i % 3 === 0;
+  // Generate ticks for the clock face (60 minutes/seconds)
+  const ticks = Array.from({ length: 60 }).map((_, i) => {
+    const angle = i * 6;
+    const isHour = i % 5 === 0;
+    const isQuarter = i % 15 === 0;
     return (
       <line
         key={i}
         x1="100"
-        y1="15"
+        y1="12"
         x2="100"
-        y2={isPrimary ? "23" : "19"}
-        stroke={isPrimary ? "#fff" : "#4b5563"}
-        strokeWidth={isPrimary ? "2" : "1"}
+        y2={isQuarter ? "22" : isHour ? "18" : "15"}
+        stroke={isQuarter ? "#ffffff" : isHour ? "#71717a" : "#27272a"}
+        strokeWidth={isQuarter ? "2" : isHour ? "1.5" : "0.75"}
         transform={`rotate(${angle}, 100, 100)`}
       />
     );
@@ -325,12 +326,22 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
 
   return (
     <div 
-      className={`fixed inset-0 z-[1000] flex flex-col items-center justify-center p-4 bg-[#0a0a0c]/95 backdrop-blur-md font-sans text-white select-none ${
+      className={`fixed inset-0 z-[1000] flex flex-col items-center justify-center p-4 font-sans text-white select-none ${
         isSuccess ? "animate-fadeOut" : ""
       }`}
+      style={{
+        backgroundImage: `
+          linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+          linear-gradient(to right, rgba(0, 0, 0, 0.5) 2px, transparent 2px),
+          linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 2px, transparent 2px)
+        `,
+        backgroundSize: "24px 24px, 24px 24px, 120px 120px, 120px 120px",
+        backgroundColor: "#08080a"
+      }}
     >
       <div 
-        className={`w-full max-w-md bg-[#111115]/80 border border-zinc-800 rounded-3xl p-6 md:p-8 flex flex-col items-center shadow-2xl relative overflow-hidden transition-all duration-300 ${
+        className={`w-full max-w-md bg-[#0e0e12]/90 border border-zinc-800/80 backdrop-blur-xl rounded-3xl p-6 md:p-8 flex flex-col items-center shadow-2xl relative overflow-hidden transition-all duration-300 ${
           isShaking ? "animate-shake border-red-500/50 shadow-red-950/20" : ""
         }`}
       >
@@ -361,7 +372,7 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
         {/* CLOCK CONTAINER */}
         <div className="relative w-64 h-64 md:w-72 md:h-72 mb-6 flex items-center justify-center">
           {/* Glassmorphic clock backplate */}
-          <div className="absolute inset-0 rounded-full border border-zinc-800 bg-zinc-950/20 shadow-inner pointer-events-none" />
+          <div className="absolute inset-0 rounded-full border border-zinc-800/60 bg-zinc-950/30 shadow-inner pointer-events-none" />
           
           <svg
             ref={svgRef}
@@ -370,84 +381,134 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
             onMouseDown={handlePointerDown}
             onTouchStart={handlePointerDown}
           >
-            {/* Clock boundary circle */}
-            <circle cx="100" cy="100" r="95" fill="none" stroke="#27272a" strokeWidth="1" />
+            {/* SVG DEFS FOR GRADIENTS AND FILTERS */}
+            <defs>
+              <filter id="handShadow" x="-20%" y="-20%" width="140%" height="140%">
+                <feDropShadow dx="1" dy="2" stdDeviation="1.5" flood-color="#000000" flood-opacity="0.6" />
+              </filter>
+            </defs>
+
+            {/* Glass clock outer borders */}
+            <circle cx="100" cy="100" r="90" fill="none" stroke="#27272a" strokeWidth="2.5" />
+            <circle cx="100" cy="100" r="89" fill="none" stroke="#18181b" strokeWidth="0.5" />
             
             {/* Hour marks */}
             {ticks}
 
             {/* 12, 3, 6, 9 labels */}
-            <text x="100" y="32" textAnchor="middle" fill="#9ca3af" fontSize="10" fontWeight="bold">12</text>
-            <text x="172" y="103" textAnchor="middle" fill="#9ca3af" fontSize="10" fontWeight="bold">3</text>
-            <text x="100" y="176" textAnchor="middle" fill="#9ca3af" fontSize="10" fontWeight="bold">6</text>
-            <text x="28" y="103" textAnchor="middle" fill="#9ca3af" fontSize="10" fontWeight="bold">9</text>
+            <text x="100" y="35" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="800" fontFamily="sans-serif">12</text>
+            <text x="165" y="104" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="800" fontFamily="sans-serif">3</text>
+            <text x="100" y="173" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="800" fontFamily="sans-serif">6</text>
+            <text x="35" y="104" textAnchor="middle" fill="#e4e4e7" fontSize="11" fontWeight="800" fontFamily="sans-serif">9</text>
 
-            {/* Hour Hand (White, draggable) */}
+            {/* Hour Hand (Sleek white bar with shadow) */}
             <line
               x1="100"
               y1="100"
               x2="100"
-              y2="50"
+              y2="54"
               stroke="#ffffff"
-              strokeWidth={dragHand === "hour" ? "5" : "4.5"}
+              strokeWidth={dragHand === "hour" ? "5.5" : "4.5"}
               strokeLinecap="round"
+              filter="url(#handShadow)"
               transform={`rotate(${hrAngle}, 100, 100)`}
               className="transition-all duration-75"
             />
+            {/* Inner accent strip on hour hand */}
+            <line
+              x1="100"
+              y1="95"
+              x2="100"
+              y2="58"
+              stroke="#a1a1aa"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              transform={`rotate(${hrAngle}, 100, 100)`}
+              className="transition-all duration-75 pointer-events-none"
+            />
             {/* Hour hand dragging highlight */}
             {!isTicking && !isTimerRunning && dragHand === "hour" && (
-              <circle cx="100" cy="50" r="6" fill="#fff" transform={`rotate(${hrAngle}, 100, 100)`} />
+              <circle cx="100" cy="54" r="5" fill="#ffffff" opacity="0.8" transform={`rotate(${hrAngle}, 100, 100)`} />
             )}
 
-            {/* Minute Hand (Green/Emerald, draggable) */}
+            {/* Minute Hand (Sleek emerald bar with shadow) */}
             <line
               x1="100"
               y1="100"
               x2="100"
-              y2="30"
+              y2="34"
               stroke="#10b981"
-              strokeWidth={dragHand === "minute" ? "4" : "3.5"}
+              strokeWidth={dragHand === "minute" ? "4.5" : "3.5"}
               strokeLinecap="round"
+              filter="url(#handShadow)"
               transform={`rotate(${minAngle}, 100, 100)`}
               className="transition-all duration-75"
             />
+            {/* Inner accent strip on minute hand */}
+            <line
+              x1="100"
+              y1="95"
+              x2="100"
+              y2="38"
+              stroke="#6ee7b7"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              transform={`rotate(${minAngle}, 100, 100)`}
+              className="transition-all duration-75 pointer-events-none"
+            />
             {/* Minute hand dragging highlight */}
             {!isTicking && !isTimerRunning && dragHand === "minute" && (
-              <circle cx="100" cy="30" r="5" fill="#10b981" transform={`rotate(${minAngle}, 100, 100)`} />
+              <circle cx="100" cy="34" r="4" fill="#10b981" opacity="0.8" transform={`rotate(${minAngle}, 100, 100)`} />
             )}
 
-            {/* Second Hand (Red, ticks when real time or study timer is active) */}
+            {/* Second Hand (Sleek rose colored needle with circular counterweight) */}
             {(isTicking || isTimerRunning) && (
-              <line
-                x1="100"
-                y1="115"
-                x2="100"
-                y2="25"
-                stroke="#ef4444"
-                strokeWidth="1.5"
-                transform={`rotate(${secAngle}, 100, 100)`}
-              />
+              <>
+                <line
+                  x1="100"
+                  y1="115"
+                  x2="100"
+                  y2="24"
+                  stroke="#f43f5e"
+                  strokeWidth="1.2"
+                  strokeLinecap="round"
+                  filter="url(#handShadow)"
+                  transform={`rotate(${secAngle}, 100, 100)`}
+                />
+                <circle
+                  cx="100"
+                  cy="115"
+                  r="2.5"
+                  fill="#f43f5e"
+                  filter="url(#handShadow)"
+                  transform={`rotate(${secAngle}, 100, 100)`}
+                />
+              </>
             )}
 
-            {/* CENTER BUTTON CAP */}
-            <circle
-              cx="100"
-              cy="100"
-              r="16"
-              fill={isTimerRunning ? "#991b1b" : isTicking ? "#1f2937" : "#065f46"}
-              stroke={isTimerRunning ? "#ef4444" : isTicking ? "#374151" : "#10b981"}
-              strokeWidth="2.5"
-              className="transition-all duration-300 hover:scale-105 active:scale-95"
-            />
-            
-            {/* Inner Core */}
-            <circle
-              cx="100"
-              cy="100"
-              r="6"
-              fill={isTimerRunning || isTicking ? "#ef4444" : "#34d399"}
-              className="animate-pulse"
-            />
+            {/* CENTER BUTTON CAP (Polished layered button) */}
+            <g 
+              className="cursor-pointer transition-all duration-300 hover:scale-105 active:scale-95"
+            >
+              {/* Outer ring */}
+              <circle
+                cx="100"
+                cy="100"
+                r="10"
+                fill="#18181b"
+                stroke={isTimerRunning ? "#ef4444" : isTicking ? "#3f3f46" : "#10b981"}
+                strokeWidth="1.5"
+                filter="url(#handShadow)"
+              />
+              {/* Inner core */}
+              <circle
+                cx="100"
+                cy="100"
+                r="4.5"
+                fill={isTimerRunning || isTicking ? "#f43f5e" : "#34d399"}
+                className={isTimerRunning ? "animate-pulse" : ""}
+              />
+            </g>
           </svg>
         </div>
 
@@ -456,25 +517,25 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
           <div className="flex gap-1.5 justify-center w-full mb-4">
             <button
               onClick={() => applyPreset(0, 15)}
-              className="flex-1 py-2 px-0.5 bg-zinc-900/60 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
             >
               15m Focus
             </button>
             <button
               onClick={() => applyPreset(0, 25)}
-              className="flex-1 py-2 px-0.5 bg-zinc-900/60 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
             >
               25m Pomo
             </button>
             <button
               onClick={() => applyPreset(0, 45)}
-              className="flex-1 py-2 px-0.5 bg-zinc-900/60 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
             >
               45m Study
             </button>
             <button
               onClick={() => applyPreset(1, 0)}
-              className="flex-1 py-2 px-0.5 bg-zinc-900/60 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
             >
               1h Deep
             </button>
