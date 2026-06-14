@@ -12,6 +12,7 @@ const ProfileModal = ({ isOpen, onClose, user, onUpdate, socket }) => {
   const [error, setError] = useState("");
   const [lockMode, setLockMode] = useState(null); // null, "setup", "disable"
   const hasLock = user?.appLockPassword && user.appLockPassword.hour !== null && user.appLockPassword.minute !== null;
+  const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
