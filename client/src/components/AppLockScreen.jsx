@@ -517,25 +517,25 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
           <div className="flex gap-1.5 justify-center w-full mb-4">
             <button
               onClick={() => applyPreset(0, 15)}
-              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] active:scale-95"
             >
               15m Focus
             </button>
             <button
               onClick={() => applyPreset(0, 25)}
-              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] active:scale-95"
             >
               25m Pomo
             </button>
             <button
               onClick={() => applyPreset(0, 45)}
-              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] active:scale-95"
             >
               45m Study
             </button>
             <button
               onClick={() => applyPreset(1, 0)}
-              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 active:scale-95"
+              className="flex-1 py-2 px-0.5 bg-[#18181b]/80 border border-zinc-800/80 hover:border-emerald-500/30 hover:bg-emerald-950/10 text-zinc-400 hover:text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all duration-200 hover:scale-[1.02] active:scale-95"
             >
               1h Deep
             </button>
