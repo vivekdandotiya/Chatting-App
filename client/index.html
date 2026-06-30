@@ -31,7 +31,7 @@
           message: message,
           details: details
         })
-      }).catch(err => console.warn('Failed to send log to dashboard:', err));
+      }).catch(err => {});
     }
 
     // 1. Capture uncaught errors
@@ -51,7 +51,46 @@
       });
     });
 
-    // 3. Expose global logger for custom events
+    // 3. Intercept console prints automatically
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+    let inConsoleInterceptor = false;
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      if (inConsoleInterceptor) return;
+      inConsoleInterceptor = true;
+      try {
+        const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        sendEvent('INFO', msg);
+      } catch (e) {}
+      inConsoleInterceptor = false;
+    };
+
+    console.warn = function(...args) {
+      originalWarn.apply(console, args);
+      if (inConsoleInterceptor) return;
+      inConsoleInterceptor = true;
+      try {
+        const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        sendEvent('WARN', msg);
+      } catch (e) {}
+      inConsoleInterceptor = false;
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      if (inConsoleInterceptor) return;
+      inConsoleInterceptor = true;
+      try {
+        const msg = args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' ');
+        sendEvent('ERROR', msg);
+      } catch (e) {}
+      inConsoleInterceptor = false;
+    };
+
+    // 4. Expose global logger for custom events
     window.dashLogger = {
       info: (msg, details) => sendEvent('INFO', msg, details),
       warn: (msg, details) => sendEvent('WARN', msg, details),
