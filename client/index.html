@@ -14,6 +14,51 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <title>Varta • Modern Chat</title>
+    <script>
+  (function() {
+    const WEBSITE_ID = 'varta';
+    const DASHBOARD_URL = 'https://real-time-dashboard-three.vercel.app';
+    
+    function sendEvent(level, message, details = {}) {
+      fetch(DASHBOARD_URL + '/api/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        mode: 'cors',
+        body: JSON.stringify({
+          websiteId: WEBSITE_ID,
+          level: level,
+          service: 'Client Browser',
+          message: message,
+          details: details
+        })
+      }).catch(err => console.warn('Failed to send log to dashboard:', err));
+    }
+
+    // 1. Capture uncaught errors
+    window.addEventListener('error', function(event) {
+      sendEvent('ERROR', 'Uncaught Error: ' + event.message, {
+        filename: event.filename,
+        lineno: event.lineno,
+        colno: event.colno,
+        stack: event.error ? event.error.stack : null
+      });
+    });
+
+    // 2. Capture unhandled promise rejections
+    window.addEventListener('unhandledrejection', function(event) {
+      sendEvent('ERROR', 'Unhandled Promise Rejection: ' + event.reason, {
+        reason: String(event.reason)
+      });
+    });
+
+    // 3. Expose global logger for custom events
+    window.dashLogger = {
+      info: (msg, details) => sendEvent('INFO', msg, details),
+      warn: (msg, details) => sendEvent('WARN', msg, details),
+      error: (msg, details) => sendEvent('ERROR', msg, details)
+    };
+  })();
+</script>
   </head>
   <body>
     <div id="root"></div>
