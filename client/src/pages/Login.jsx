@@ -199,6 +199,15 @@ const ErrorBanner = ({ message }) => (
   </div>
 );
 
+const SuccessBanner = ({ message }) => (
+  <div className="mb-4 p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-2.5">
+    <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
+      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.6l-4.2-4.2 1.4-1.4L11 13.8l5.8-5.8 1.4 1.4L11 16.6z" />
+    </svg>
+    <p className="text-emerald-700 text-xs font-semibold leading-snug">{message}</p>
+  </div>
+);
+
 const OAuthButton = ({ children, icon }) => (
   <button
     type="button"
@@ -220,7 +229,16 @@ function Login() {
   const [loading, setLoading] = useState(false);
   const [isServerReady, setIsServerReady] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isWakingUp, setIsWakingUp] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
+  const [resetStep, setResetStep] = useState(1);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetOtp, setResetOtp] = useState("");
+  const [resetPassword, setResetPassword] = useState("");
+  const [resetConfirmPass, setResetConfirmPass] = useState("");
+  const [showResetPass, setShowResetPass] = useState(false);
+  const [showResetConfirmPass, setShowResetConfirmPass] = useState(false);
 
   // Proactive backend wake up.
   const wakeServer = async () => {
@@ -253,6 +271,7 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!email || !password) {
       setError("Please fill all fields");
@@ -277,6 +296,104 @@ function Login() {
       navigate("/chat");
     } catch (err) {
       setError(err.response?.data?.message || "Login failed. Please try again");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const openResetMode = () => {
+    setError("");
+    setSuccess("");
+    setIsResetMode(true);
+    setResetStep(1);
+    setResetEmail(email);
+    setResetOtp("");
+    setResetPassword("");
+    setResetConfirmPass("");
+  };
+
+  const closeResetMode = () => {
+    setError("");
+    setSuccess("");
+    setIsResetMode(false);
+    setResetStep(1);
+    setResetOtp("");
+    setResetPassword("");
+    setResetConfirmPass("");
+  };
+
+  const handleSendResetOTP = async (e) => {
+    if (e) e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!resetEmail) {
+      setError("Please enter your account email");
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(resetEmail)) {
+      setError("Please enter a valid email");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/send-reset-otp`, {
+        email: resetEmail,
+      });
+      setResetStep(2);
+      setSuccess("Reset code sent. Check your email and enter the 6-digit code below.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to send reset code. Please try again");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!resetOtp || resetOtp.length < 6) {
+      setError("Please enter the 6-digit reset code");
+      return;
+    }
+
+    if (resetPassword.length < 5) {
+      setError("Password must be at least 5 characters");
+      return;
+    }
+
+    if (!/[a-zA-Z]/.test(resetPassword) || !/\d/.test(resetPassword)) {
+      setError("Password must contain at least one letter and one number");
+      return;
+    }
+
+    if (resetPassword !== resetConfirmPass) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axios.post(`${import.meta.env.VITE_BACKEND_URL}/api/auth/reset-password`, {
+        email: resetEmail,
+        otp: resetOtp,
+        password: resetPassword,
+      });
+
+      setEmail(resetEmail);
+      setPassword("");
+      setIsResetMode(false);
+      setResetStep(1);
+      setResetOtp("");
+      setResetPassword("");
+      setResetConfirmPass("");
+      setSuccess("Password reset successfully. Sign in with your new password.");
+    } catch (err) {
+      setError(err.response?.data?.message || "Password reset failed. Please try again");
     } finally {
       setLoading(false);
     }
@@ -334,18 +451,169 @@ function Login() {
                 <img src="/fevicon.png" alt="Varta Logo" className="w-6 h-6 object-contain invert brightness-100" />
               </div>
               <h1 className="text-2xl font-black text-slate-950 tracking-tight">
-                Welcome Back
+                {isResetMode ? "Reset Password" : "Welcome Back"}
               </h1>
               <p className="text-slate-500 text-[11px] mt-1 font-medium">
-                Sign in to continue to your Varta dashboard
+                {isResetMode
+                  ? resetStep === 1
+                    ? "Enter your email to receive a reset code"
+                    : "Enter the code and choose a new password"
+                  : "Sign in to continue to your Varta dashboard"}
               </p>
             </div>
 
             {/* ERROR */}
             {error && <ErrorBanner message={error} />}
+            {success && <SuccessBanner message={success} />}
+
+            {/* RESET FORM */}
+            {isResetMode && (
+              resetStep === 1 ? (
+                <form onSubmit={handleSendResetOTP} className="space-y-4">
+                  <div>
+                    <label className={labelClass}>Account Email</label>
+                    <input
+                      type="email"
+                      placeholder="name@example.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                      onFocus={wakeServer}
+                      disabled={loading}
+                      className={inputClass}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 rounded-xl font-bold text-white text-[13px] uppercase tracking-wider bg-slate-950 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full" style={{ animation: "loginSpinner 0.7s linear infinite" }} />
+                        <span>{isWakingUp ? "Waking server..." : "Sending code..."}</span>
+                      </>
+                    ) : (
+                      "Send Reset Code"
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={closeResetMode}
+                    disabled={loading}
+                    className="w-full py-2.5 text-xs font-semibold text-slate-400 hover:text-slate-900 transition disabled:opacity-40"
+                  >
+                    Back to sign in
+                  </button>
+                </form>
+              ) : (
+                <form onSubmit={handleResetPassword} className="space-y-4">
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Reset Email</p>
+                    <p className="text-xs font-semibold text-slate-800 truncate">{resetEmail}</p>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Verification Code</label>
+                    <input
+                      type="text"
+                      maxLength="6"
+                      placeholder="000000"
+                      value={resetOtp}
+                      onChange={(e) => setResetOtp(e.target.value.replace(/\D/g, ""))}
+                      disabled={loading}
+                      className={`${inputClass} text-center text-lg font-extrabold tracking-[0.35em]`}
+                    />
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>New Password</label>
+                    <div className="relative">
+                      <input
+                        type={showResetPass ? "text" : "password"}
+                        placeholder="Create new password"
+                        value={resetPassword}
+                        onChange={(e) => setResetPassword(e.target.value)}
+                        disabled={loading}
+                        className={`${inputClass} pr-12`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetPass(!showResetPass)}
+                        disabled={loading}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 transition-colors duration-200 disabled:opacity-40"
+                      >
+                        {showResetPass ? <EyeSlashIcon /> : <EyeIcon />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className={labelClass}>Confirm Password</label>
+                    <div className="relative">
+                      <input
+                        type={showResetConfirmPass ? "text" : "password"}
+                        placeholder="Confirm new password"
+                        value={resetConfirmPass}
+                        onChange={(e) => setResetConfirmPass(e.target.value)}
+                        disabled={loading}
+                        className={`${inputClass} pr-12`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowResetConfirmPass(!showResetConfirmPass)}
+                        disabled={loading}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-800 transition-colors duration-200 disabled:opacity-40"
+                      >
+                        {showResetConfirmPass ? <EyeSlashIcon /> : <EyeIcon />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full py-3 rounded-xl font-bold text-white text-[13px] uppercase tracking-wider bg-slate-950 hover:bg-slate-800 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-3.5 h-3.5 border-2 border-white/60 border-t-transparent rounded-full" style={{ animation: "loginSpinner 0.7s linear infinite" }} />
+                        <span>{isWakingUp ? "Waking server..." : "Resetting..."}</span>
+                      </>
+                    ) : (
+                      "Reset Password"
+                    )}
+                  </button>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setError("");
+                        setSuccess("");
+                        setResetStep(1);
+                      }}
+                      disabled={loading}
+                      className="text-xs font-semibold text-slate-400 hover:text-slate-900 transition disabled:opacity-40"
+                    >
+                      Edit email
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSendResetOTP}
+                      disabled={loading}
+                      className="text-xs font-bold text-slate-900 hover:text-black underline underline-offset-4 decoration-slate-400 transition disabled:opacity-40"
+                    >
+                      Resend code
+                    </button>
+                  </div>
+                </form>
+              )
+            )}
 
             {/* FORM */}
-            <form onSubmit={handleLogin} className="space-y-4">
+            {!isResetMode && <form onSubmit={handleLogin} className="space-y-4">
               {/* EMAIL */}
               <div>
                 <label className={labelClass}>Email Address</label>
@@ -396,12 +664,14 @@ function Login() {
                     Remember me
                   </span>
                 </label>
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={openResetMode}
+                  disabled={loading}
                   className="text-xs text-slate-400 hover:text-slate-900 transition-colors font-semibold"
                 >
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               {/* SUBMIT BUTTON */}
@@ -431,19 +701,19 @@ function Login() {
                   </>
                 )}
               </button>
-            </form>
+            </form>}
 
             {/* DIVIDER */}
-            <div className="my-5 flex items-center gap-3">
+            {!isResetMode && <div className="my-5 flex items-center gap-3">
               <div className="flex-1 h-px bg-slate-200" />
               <span className="text-[9px] text-slate-400 uppercase tracking-widest font-extrabold select-none">
                 Or continue with
               </span>
               <div className="flex-1 h-px bg-slate-200" />
-            </div>
+            </div>}
 
             {/* OAUTH */}
-            <div className="flex gap-3">
+            {!isResetMode && <div className="flex gap-3">
               <OAuthButton
                 icon={
                   <svg className="w-4 h-4 text-slate-800" fill="currentColor" viewBox="0 0 24 24">
@@ -462,10 +732,10 @@ function Login() {
               >
                 Apple
               </OAuthButton>
-            </div>
+            </div>}
 
             {/* FOOTER */}
-            <p className="text-center text-slate-400 text-xs mt-6">
+            {!isResetMode && <p className="text-center text-slate-400 text-xs mt-6">
               Don't have an account?{" "}
               <button
                 onClick={() => navigate("/signup")}
@@ -473,7 +743,7 @@ function Login() {
               >
                 Sign up now
               </button>
-            </p>
+            </p>}
           </div>
         </div>
       </div>

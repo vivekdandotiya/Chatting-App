@@ -18,6 +18,10 @@ const generateToken = (id) => {
   });
 };
 
+const isValidPassword = (password) => {
+  return password && password.length >= 5 && /[a-zA-Z]/.test(password) && /\d/.test(password);
+};
+
 const sendOTP = async (req, res) => {
   try {
     const { email } = req.body;
@@ -29,8 +33,8 @@ const sendOTP = async (req, res) => {
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
     // delete old otps for this email
-    await OTP.deleteMany({ email });
-    await OTP.create({ email, otp });
+    await OTP.deleteMany({ email, purpose: "signup" });
+    await OTP.create({ email, otp, purpose: "signup" });
 
     const mailOptions = {
       from: process.env.EMAIL_USER,
@@ -56,7 +60,7 @@ const registerUser = async (req, res) => {
     }
 
     // 🔒 PASSWORD VALIDATION
-    if (password.length < 5) {
+    if (!password || password.length < 5) {
       return res.status(400).json({ message: "Password must be at least 5 characters long" });
     }
     if (!/[a-zA-Z]/.test(password) || !/\d/.test(password)) {
@@ -65,7 +69,7 @@ const registerUser = async (req, res) => {
 
 
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email, otp });
+    const otpRecord = await OTP.findOne({ email, otp, purpose: "signup" });
     if (!otpRecord) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
@@ -83,7 +87,7 @@ const registerUser = async (req, res) => {
     });
 
     // Delete OTP after successful registration
-    await OTP.deleteMany({ email });
+    await OTP.deleteMany({ email, purpose: "signup" });
 
     return res.status(201).json({
       _id: user._id,
@@ -95,6 +99,72 @@ const registerUser = async (req, res) => {
   } catch (error) {
     console.log("REGISTER ERROR:", error);
     return res.status(500).json({ message: error.message });
+  }
+};
+
+const sendResetOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email" });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    await OTP.deleteMany({ email, purpose: "reset" });
+    await OTP.create({ email, otp, purpose: "reset" });
+
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: "Your Varta Password Reset Code",
+      text: `Your password reset code is ${otp}. It will expire in 5 minutes.`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    res.status(200).json({ message: "Password reset code sent successfully" });
+  } catch (error) {
+    console.log("SEND RESET OTP ERROR:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  try {
+    const { email, otp, password } = req.body;
+
+    if (!email || !otp || !password) {
+      return res.status(400).json({ message: "Email, OTP, and password are required" });
+    }
+
+    if (!isValidPassword(password)) {
+      return res.status(400).json({ message: "Password must be at least 5 characters and contain one letter and one number" });
+    }
+
+    const otpRecord = await OTP.findOne({ email, otp, purpose: "reset" });
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "No account found with this email" });
+    }
+
+    user.password = password;
+    await user.save();
+    await OTP.deleteMany({ email, purpose: "reset" });
+
+    res.status(200).json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.log("RESET PASSWORD ERROR:", error);
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -304,4 +374,4 @@ module.exports = {
   getPushStatus,
   setLockPassword,
   removeLockPassword
-};
+};
