@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { socket } from "./Chat";
 
-// 🎤 INTERACTIVE VOICE PLAYER SUB-COMPONENT
+// Interactive voice player sub-component.
 const VoicePlayer = ({ voiceUrl, isMe }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -109,22 +109,22 @@ function SingleChat({ onlineUsers }) {
   const [isServerReady, setIsServerReady] = useState(false);
   const [isWakingUp, setIsWakingUp] = useState(false);
   
-  // 🎤 VOICE RECORDING STATES
+  // Voice recording states.
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
   const timerRef = useRef(null);
 
-  // 📝 TYPING STATES
+  // Typing states.
   const [isTargetTyping, setIsTargetTyping] = useState(false);
   const [localTyping, setLocalTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
 
-  // 🔍 SEARCH STATES
+  // Search states.
   const [isSearching, setIsSearching] = useState(false);
   const [chatSearchQuery, setChatSearchQuery] = useState("");
 
-  const emojis = ["❤️", "😂", "😮", "😢", "🙏", "👍"];
+  const emojis = ["<3", "Ha", "Wow", "Sad", "Thx", "+1"];
 
   const bottomRef = useRef();
   const isInitialLoadRef = useRef(true);
@@ -173,7 +173,7 @@ function SingleChat({ onlineUsers }) {
     return () => clearTimeout(timer);
   }, [loadingStatus]);
 
-  // 🔔 REQUEST NOTIFICATION
+  // Request notification permission.
   useEffect(() => {
     Notification.requestPermission();
   }, []);
@@ -192,7 +192,7 @@ function SingleChat({ onlineUsers }) {
     return () => document.removeEventListener("click", handleOutsideClick);
   }, [showPickerFor]);
 
-  // 🔥 CHECK PERMISSION AND LOAD MESSAGES
+  // Check permission and load messages.
   useEffect(() => {
     if (!user || !id) return;
 
@@ -222,7 +222,7 @@ function SingleChat({ onlineUsers }) {
             setMessages([]);
           }
 
-          // ✅ mark read
+          // Mark read.
           socket.emit("markAsRead", {
             sender: id,
             receiver: user._id,
@@ -246,7 +246,7 @@ function SingleChat({ onlineUsers }) {
     }
   }, [user?._id]);
 
-  // 🔥 RECEIVE MESSAGE & PROFILE UPDATES
+  // Receive message and profile updates.
   useEffect(() => {
     if (!isAllowed) return;
 
@@ -359,7 +359,7 @@ function SingleChat({ onlineUsers }) {
     prevMessagesLengthRef.current = 0;
   }, [id]);
 
-  // 🔥 AUTO SCROLL (WhatsApp style: instant on open, smooth only on new messages)
+  // Auto scroll: instant on open, smooth only on new messages.
   useEffect(() => {
     if (!messages || messages.length === 0) return;
 
@@ -375,7 +375,7 @@ function SingleChat({ onlineUsers }) {
     }
   }, [messages]);
 
-  // 🔥 SEND MESSAGE
+  // Send message.
   const sendMessage = () => {
     if (!message.trim() || !isAllowed) return;
 
@@ -401,7 +401,7 @@ function SingleChat({ onlineUsers }) {
     stopLocalTyping();
   };
 
-  // 📝 LOCAL INPUT CHANGED (Typing status)
+  // Local input changed: typing status.
   const handleInputChange = (e) => {
     setMessage(e.target.value);
 
@@ -432,14 +432,14 @@ function SingleChat({ onlineUsers }) {
     }
   };
 
-  // 🚫 DELETE MESSAGE FOR EVERYONE
+  // Delete message for everyone.
   const handleDeleteMessage = (msgId) => {
     if (window.confirm("Delete this message for everyone?")) {
       socket.emit("deleteMessage", { messageId: msgId, userId: user._id });
     }
   };
 
-  // 🎤 START RECORDING
+  // Start recording.
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -467,7 +467,7 @@ function SingleChat({ onlineUsers }) {
     }
   };
 
-  // 🎤 STOP RECORDING
+  // Stop recording.
   const stopRecording = () => {
     if (mediaRecorder) {
       mediaRecorder.stop();
@@ -476,7 +476,7 @@ function SingleChat({ onlineUsers }) {
     }
   };
 
-  // 🎤 CANCEL RECORDING
+  // Cancel recording.
   const cancelRecording = () => {
     if (mediaRecorder) {
       mediaRecorder.onstop = null; // Prevent sending
@@ -516,7 +516,7 @@ function SingleChat({ onlineUsers }) {
     setShowPickerFor(null);
   };
 
-  // 🎤 SEND VOICE MESSAGE
+  // Send voice message.
   const sendVoiceMessage = async (blob) => {
     const tempId = Date.now();
     try {
@@ -554,7 +554,7 @@ function SingleChat({ onlineUsers }) {
     }
   };
 
-  // 📁 FILE UPLOAD LOGIC
+  // File upload logic.
   const fileInputRef = useRef(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -830,7 +830,7 @@ function SingleChat({ onlineUsers }) {
 
                           {msg.isDeleted ? (
                             <div className="flex items-center gap-2 select-none">
-                              <span className="text-[12px]">🚫</span>
+                              <span className="text-[12px]">X</span>
                               <span>This message was deleted</span>
                             </div>
                           ) : msg.messageType === "voice" ? (
@@ -849,7 +849,7 @@ function SingleChat({ onlineUsers }) {
                                     <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                     {isMe && (
                                       <span className={msg.status === "read" ? "text-emerald-400" : "text-white/70"}>
-                                        {msg.status === "sent" ? "✓" : "✓✓"}
+                                        {msg.status === "read" ? "Read" : msg.status === "delivered" ? "Delivered" : "Sent"}
                                       </span>
                                     )}
                                   </div>
@@ -892,9 +892,9 @@ function SingleChat({ onlineUsers }) {
 
                               {isMe && !msg.isDeleted && (
                                 <span className="text-[11px] font-semibold leading-none">
-                                  {msg.status === "sent" && "✓"}
-                                  {msg.status === "delivered" && "✓✓"}
-                                  {msg.status === "read" && <span className="text-emerald-400">✓✓</span>}
+                                  {msg.status === "sent" && "Sent"}
+                                  {msg.status === "delivered" && "Delivered"}
+                                  {msg.status === "read" && <span className="text-emerald-400">Read</span>}
                                 </span>
                               )}
                             </div>

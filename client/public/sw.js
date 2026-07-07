@@ -44,7 +44,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 🌐 Navigation requests (HTML pages): Network-First
+  // Navigation requests (HTML pages): Network-First
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 📦 Static Assets: Stale-While-Revalidate
+  // Static Assets: Stale-While-Revalidate
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {

@@ -265,14 +265,14 @@ export default function Game2048() {
           onClick={() => move("up")}
           className="w-12 h-12 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95"
         >
-          ▲
+          Up
         </button>
         <div className="flex justify-between w-full">
           <button
             onClick={() => move("left")}
             className="w-12 h-12 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95"
           >
-            ◀
+            Left
           </button>
           <button
             onClick={initGame}
@@ -284,14 +284,14 @@ export default function Game2048() {
             onClick={() => move("right")}
             className="w-12 h-12 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95"
           >
-            ▶
+            Right
           </button>
         </div>
         <button
           onClick={() => move("down")}
           className="w-12 h-12 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95"
         >
-          ▼
+          Down
         </button>
       </div>
 

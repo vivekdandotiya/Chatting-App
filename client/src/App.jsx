@@ -10,14 +10,14 @@ function App() {
   const [isServerReady, setIsServerReady] = useState(false);
 
   useEffect(() => {
-    // 🚀 PROACTIVE WAKE UP
+    // Proactive backend wake up.
     const wakeServer = async () => {
       try {
         await fetch(`${import.meta.env.VITE_BACKEND_URL}/api/health`);
         setIsServerReady(true);
-        console.log("✅ Backend is awake and ready!");
+        console.log("Backend is awake and ready!");
       } catch (err) {
-        console.log("⏳ Backend is still waking up...");
+        console.log("Backend is still waking up...");
       }
     };
     

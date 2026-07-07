@@ -43,7 +43,7 @@ const VartaHome = () => {
           onClick={handleOpenGameZone}
           className="mb-8 px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-400 text-black font-extrabold text-xs uppercase tracking-widest rounded-xl hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-emerald-500/10 flex items-center gap-2"
         >
-          🎮 Open Game Zone
+          Open Game Zone
         </button>
         
         <div className="flex items-center gap-2.5 text-[10px] text-zinc-500 font-extrabold uppercase tracking-widest bg-[#111111] border border-[#2a2a2a] px-4 py-2.5 rounded-xl shadow-inner">
@@ -95,7 +95,7 @@ function Chat() {
 
     wakeServer();
 
-    // 🔔 SUBSCRIBE TO PUSH NOTIFICATIONS
+    // Subscribe to push notifications.
     const subscribeToPush = async () => {
       if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
         console.log("Push notifications are not supported on this device/browser.");
@@ -158,7 +158,7 @@ function Chat() {
           }
 
           if (keyMismatch) {
-            console.log("🔄 VAPID key mismatch detected. Re-subscribing...");
+            console.log("VAPID key mismatch detected. Re-subscribing...");
             await subscription.unsubscribe();
             subscription = null;
           }
@@ -176,9 +176,9 @@ function Chat() {
           userId: currentUser._id,
           subscription
         });
-        console.log("✅ Push notification subscription successful!");
+        console.log("Push notification subscription successful!");
       } catch (err) {
-        console.error("❌ Failed to subscribe to push notifications:", err);
+        console.error("Failed to subscribe to push notifications:", err);
       }
     };
 
@@ -229,14 +229,14 @@ function Chat() {
     }
   };
 
-  // 🔥 FETCH USERS ON LOAD
+  // Fetch users on load.
   useEffect(() => {
     refreshUsers();
     const interval = setInterval(refreshUsers, 5000);
     return () => clearInterval(interval);
   }, [currentUser?._id]);
 
-  // 🔥 SOCKET SETUP
+  // Socket setup.
   useEffect(() => {
     if (!currentUser?._id) return;
 

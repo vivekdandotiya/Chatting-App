@@ -331,13 +331,13 @@ export default function CarRacing() {
           onClick={() => steer("left")}
           className="flex-1 py-4 rounded-xl bg-[#111111] border border-[#2a2a2a] text-lg font-bold text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95 flex items-center justify-center gap-2"
         >
-          ◀ Steer Left
+          Steer Left
         </button>
         <button
           onClick={() => steer("right")}
           className="flex-1 py-4 rounded-xl bg-[#111111] border border-[#2a2a2a] text-lg font-bold text-zinc-400 hover:text-white hover:border-emerald-500/30 transition active:scale-95 flex items-center justify-center gap-2"
         >
-          Steer Right ▶
+          Steer Right
         </button>
       </div>
 

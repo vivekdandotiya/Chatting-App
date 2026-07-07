@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-/* ───────────── Inline Keyframes & Custom Animations ───────────── */
+/* Inline keyframes and custom animations */
 const styleId = "__home-premium-styles";
 if (typeof document !== "undefined" && !document.getElementById(styleId)) {
   const sheet = document.createElement("style");
@@ -35,7 +35,7 @@ if (typeof document !== "undefined" && !document.getElementById(styleId)) {
   document.head.appendChild(sheet);
 }
 
-/* ───────────── Background Patterns & Silver Orbs ───────────── */
+/* Background patterns */
 const BackgroundDecorations = () => (
   <>
     {/* Crisp Minimal Grid Pattern with distinct visible lines */}
@@ -66,7 +66,7 @@ const BackgroundDecorations = () => (
   </>
 );
 
-/* ───────────── Reusable Feature Card Component ───────────── */
+/* Reusable feature card component */
 const FeatureCard = ({ title, desc, iconSvg, delay }) => (
   <div
     className="group relative p-6 sm:p-8 rounded-2xl bg-white border border-slate-200/80 hover:border-slate-400 hover:shadow-xl hover:shadow-slate-100 transition-all duration-500 hover:translate-y-[-4px]"

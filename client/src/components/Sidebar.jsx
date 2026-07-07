@@ -28,7 +28,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
     }
   }, [currentUser]);
 
-  // 🔥 FETCH STORIES
+  // Fetch stories.
   const fetchStories = async () => {
     if (!currentUser?._id) return;
     try {
@@ -49,7 +49,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
     }
   }, [currentUser?._id, activeTab]);
 
-  // 🔥 SOCKET LISTENERS FOR TYPING & ONLINE LIST
+  // Socket listeners for typing and online list.
   useEffect(() => {
     if (!socket) return;
 
@@ -474,8 +474,10 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
                 }}
                 className="flex items-center gap-4 p-3.5 rounded-2xl cursor-pointer hover:bg-[#161616]/40 border border-transparent hover:border-[#2a2a2a]/30 mb-2 group"
               >
-                <div className="w-10 h-10 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-all text-lg">
-                  🎮
+                <div className="w-10 h-10 rounded-xl bg-[#111111] border border-[#2a2a2a] flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-all">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 12h4m-2-2v4m8-2h.01M18 10h.01M7 6h10a5 5 0 015 5v2a5 5 0 01-5 5H7a5 5 0 01-5-5v-2a5 5 0 015-5z" />
+                  </svg>
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className="text-white font-bold text-sm truncate">{gameItem.name}</h3>

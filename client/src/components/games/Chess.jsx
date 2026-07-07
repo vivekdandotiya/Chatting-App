@@ -180,7 +180,7 @@ export default function Chess() {
       newBoard[selected.r][selected.c] = null;
 
       // Log movement
-      const moveText = `${movingPiece.color === "w" ? "White" : "Black"} ${getPieceLabel(movingPiece.type)}: ${String.fromCharCode(97 + selected.c)}${8 - selected.r} ➔ ${String.fromCharCode(97 + c)}${8 - r}`;
+      const moveText = `${movingPiece.color === "w" ? "White" : "Black"} ${getPieceLabel(movingPiece.type)}: ${String.fromCharCode(97 + selected.c)}${8 - selected.r} -> ${String.fromCharCode(97 + c)}${8 - r}`;
       setGameLog((prev) => [moveText, ...prev]);
 
       // Check King Capture

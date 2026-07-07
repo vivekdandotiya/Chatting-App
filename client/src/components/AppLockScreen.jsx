@@ -11,7 +11,7 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
   const [isShaking, setIsShaking] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // 📝 STUDY TIMER STATES
+  // Study timer states.
   const [countdownSeconds, setCountdownSeconds] = useState(null);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   
@@ -43,7 +43,7 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
     }
   };
 
-  // ⏰ REAL TIME TICKING EFFECT
+  // Real time ticking effect.
   useEffect(() => {
     if (!isTicking || isTimerRunning) {
       if (timerRef.current) clearInterval(timerRef.current);
@@ -69,7 +69,7 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
     };
   }, [isTicking, isTimerRunning]);
 
-  // ⏳ STUDY TIMER COUNTDOWN EFFECT
+  // Study timer countdown effect.
   useEffect(() => {
     if (!isTimerRunning || countdownSeconds === null) {
       if (countdownRef.current) clearInterval(countdownRef.current);
@@ -361,11 +361,11 @@ const AppLockScreen = ({ mode = "unlock", targetPassword = null, onUnlock, onSav
         {/* Cover Subtitle */}
         <p className="text-zinc-500 text-xs md:text-sm text-center mb-6 max-w-xs leading-relaxed min-h-[40px]">
           {isTimerRunning ? (
-            <span className="text-emerald-400 font-bold animate-pulse">🔥 Deep study session active. Focus on your work!</span>
+            <span className="text-emerald-400 font-bold animate-pulse">Deep study session active. Focus on your work!</span>
           ) : isTicking ? (
-            <span className="text-zinc-400">🕒 Real Time clock active. Tap the center button to set study countdown blocks.</span>
+            <span className="text-zinc-400">Real time clock active. Tap the center button to set study countdown blocks.</span>
           ) : (
-            <span className="text-teal-400 font-semibold">⚙️ Drag hands to select your study time duration.</span>
+            <span className="text-teal-400 font-semibold">Drag hands to select your study time duration.</span>
           )}
         </p>
 
