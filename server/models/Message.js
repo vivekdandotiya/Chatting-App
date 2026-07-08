@@ -15,6 +15,25 @@ const messageSchema = new mongoose.Schema(
     fileUrl: String,
     fileType: String,
     fileName: String,
+    replyTo: {
+      messageId: String,
+      senderName: String,
+      content: String,
+      messageType: String,
+    },
+    isForwarded: {
+      type: Boolean,
+      default: false,
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+    },
+    isEdited: {
+      type: Boolean,
+      default: false,
+    },
+    editedAt: Date,
 
     
     status: {

@@ -306,6 +306,8 @@ io.on("connection", (socket) => {
       fileUrl: data.fileUrl || null,
       fileType: data.fileType || null,
       fileName: data.fileName || null,
+      replyTo: data.replyTo || null,
+      isForwarded: !!data.isForwarded,
       status: "sent",
     });
 
@@ -387,6 +389,55 @@ io.on("connection", (socket) => {
   });
 
   // 🔥 SEND REACTION
+  socket.on("editMessage", async ({ messageId, userId, content }) => {
+    try {
+      if (!messageId || !userId || !content || !content.trim()) return;
+
+      const msg = await Message.findById(messageId);
+      if (!msg || msg.sender !== userId || msg.isDeleted || msg.messageType !== "text") return;
+
+      msg.content = content.trim();
+      msg.isEdited = true;
+      msg.editedAt = new Date();
+      await msg.save();
+
+      const updateData = {
+        messageId: msg._id.toString(),
+        content: msg.content,
+        isEdited: msg.isEdited,
+        editedAt: msg.editedAt,
+      };
+
+      const receiverSocket = users[msg.receiver];
+      const senderSocket = users[msg.sender];
+      if (receiverSocket) io.to(receiverSocket).emit("messageEdited", updateData);
+      if (senderSocket) io.to(senderSocket).emit("messageEdited", updateData);
+    } catch (err) {
+      console.error("Error editing message:", err);
+    }
+  });
+
+  socket.on("togglePinMessage", async ({ messageId, userId }) => {
+    try {
+      if (!messageId || !userId) return;
+
+      const msg = await Message.findById(messageId);
+      if (!msg || msg.isDeleted) return;
+      if (msg.sender !== userId && msg.receiver !== userId) return;
+
+      msg.isPinned = !msg.isPinned;
+      await msg.save();
+
+      const updateData = { messageId: msg._id.toString(), isPinned: msg.isPinned };
+      const receiverSocket = users[msg.receiver];
+      const senderSocket = users[msg.sender];
+      if (receiverSocket) io.to(receiverSocket).emit("messagePinned", updateData);
+      if (senderSocket) io.to(senderSocket).emit("messagePinned", updateData);
+    } catch (err) {
+      console.error("Error pinning message:", err);
+    }
+  });
+
   socket.on("sendReaction", async ({ messageId, userId, emoji }) => {
     try {
       const msg = await Message.findById(messageId);

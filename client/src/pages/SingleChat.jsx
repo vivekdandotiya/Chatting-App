@@ -123,6 +123,13 @@ function SingleChat({ onlineUsers }) {
   // Search states.
   const [isSearching, setIsSearching] = useState(false);
   const [chatSearchQuery, setChatSearchQuery] = useState("");
+  const [replyTo, setReplyTo] = useState(null);
+  const [editingMessage, setEditingMessage] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [isForwardOpen, setIsForwardOpen] = useState(false);
+  const [forwardMessage, setForwardMessage] = useState(null);
+  const [forwardTargets, setForwardTargets] = useState([]);
 
   const emojis = ["<3", "Ha", "Wow", "Sad", "Thx", "+1"];
 
@@ -332,6 +339,26 @@ function SingleChat({ onlineUsers }) {
       );
     };
 
+    const handleMessageEdited = ({ messageId, content, isEdited, editedAt }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId || String(m._id) === String(messageId)
+            ? { ...m, content, isEdited, editedAt }
+            : m
+        )
+      );
+    };
+
+    const handleMessagePinned = ({ messageId, isPinned }) => {
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === messageId || String(m._id) === String(messageId)
+            ? { ...m, isPinned }
+            : m
+        )
+      );
+    };
+
     socket.on("receiveMessage", handleReceiveMessage);
     socket.on("messageDelivered", handleMessageDelivered);
     socket.on("messageRead", handleMessageRead);
@@ -340,6 +367,8 @@ function SingleChat({ onlineUsers }) {
     socket.on("typing", handleTyping);
     socket.on("stopTyping", handleStopTyping);
     socket.on("messageDeleted", handleMessageDeleted);
+    socket.on("messageEdited", handleMessageEdited);
+    socket.on("messagePinned", handleMessagePinned);
 
     return () => {
       socket.off("receiveMessage", handleReceiveMessage);
@@ -350,6 +379,8 @@ function SingleChat({ onlineUsers }) {
       socket.off("typing", handleTyping);
       socket.off("stopTyping", handleStopTyping);
       socket.off("messageDeleted", handleMessageDeleted);
+      socket.off("messageEdited", handleMessageEdited);
+      socket.off("messagePinned", handleMessagePinned);
     };
   }, [isAllowed, id]);
 
@@ -379,6 +410,25 @@ function SingleChat({ onlineUsers }) {
   const sendMessage = () => {
     if (!message.trim() || !isAllowed) return;
 
+    if (editingMessage) {
+      socket.emit("editMessage", {
+        messageId: editingMessage._id,
+        userId: user._id,
+        content: message.trim(),
+      });
+      setMessages((prev) =>
+        prev.map((m) =>
+          m._id === editingMessage._id || String(m._id) === String(editingMessage._id)
+            ? { ...m, content: message.trim(), isEdited: true, editedAt: new Date() }
+            : m
+        )
+      );
+      setEditingMessage(null);
+      setMessage("");
+      stopLocalTyping();
+      return;
+    }
+
     const newMsg = {
       _id: Date.now(),
       sender: user._id,
@@ -386,6 +436,14 @@ function SingleChat({ onlineUsers }) {
       senderName: user.name,
       content: message,
       messageType: "text",
+      replyTo: replyTo
+        ? {
+            messageId: String(replyTo._id),
+            senderName: replyTo.sender === user._id ? user.name : targetName,
+            content: replyTo.content || replyTo.fileName || (replyTo.messageType === "voice" ? "Voice message" : "Attachment"),
+            messageType: replyTo.messageType || "text",
+          }
+        : null,
       status: "sent",
       createdAt: new Date(),
     };
@@ -396,6 +454,7 @@ function SingleChat({ onlineUsers }) {
     // Send
     socket.emit("sendMessage", newMsg);
     setMessage("");
+    setReplyTo(null);
 
     // Stop local typing
     stopLocalTyping();
@@ -437,6 +496,79 @@ function SingleChat({ onlineUsers }) {
     if (window.confirm("Delete this message for everyone?")) {
       socket.emit("deleteMessage", { messageId: msgId, userId: user._id });
     }
+  };
+
+  const handleCopyMessage = async (msg) => {
+    if (!msg?.content) return;
+    try {
+      await navigator.clipboard.writeText(msg.content);
+    } catch (err) {
+      console.error("Copy failed:", err);
+    }
+  };
+
+  const handleStartReply = (msg) => {
+    setReplyTo(msg);
+    setEditingMessage(null);
+    setShowPickerFor(null);
+  };
+
+  const handleStartEdit = (msg) => {
+    if (msg.sender !== user._id || msg.messageType !== "text") return;
+    setEditingMessage(msg);
+    setReplyTo(null);
+    setMessage(msg.content || "");
+    setShowPickerFor(null);
+  };
+
+  const handleTogglePin = (msg) => {
+    socket.emit("togglePinMessage", { messageId: msg._id, userId: user._id });
+    setMessages((prev) =>
+      prev.map((m) =>
+        m._id === msg._id || String(m._id) === String(msg._id)
+          ? { ...m, isPinned: !m.isPinned }
+          : m
+      )
+    );
+  };
+
+  const openForwardModal = async (msg) => {
+    setForwardMessage(msg);
+    setIsForwardOpen(true);
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_URL}/api/users?userId=${user._id}`);
+      setForwardTargets(
+        res.data.filter((u) => u._id !== user._id && u.connectionStatus === "accepted")
+      );
+    } catch (err) {
+      console.error("Forward users error:", err);
+      setForwardTargets([]);
+    }
+  };
+
+  const forwardToUser = (targetUser) => {
+    if (!forwardMessage || !targetUser) return;
+    const forwardedMsg = {
+      _id: Date.now(),
+      sender: user._id,
+      receiver: targetUser._id,
+      senderName: user.name,
+      content: forwardMessage.content,
+      messageType: forwardMessage.messageType || "text",
+      voiceUrl: forwardMessage.voiceUrl || null,
+      fileUrl: forwardMessage.fileUrl || null,
+      fileType: forwardMessage.fileType || null,
+      fileName: forwardMessage.fileName || null,
+      isForwarded: true,
+      status: "sent",
+      createdAt: new Date(),
+    };
+    socket.emit("sendMessage", forwardedMsg);
+    if (targetUser._id === id) {
+      setMessages((prev) => [...prev, forwardedMsg]);
+    }
+    setIsForwardOpen(false);
+    setForwardMessage(null);
   };
 
   // Start recording.
@@ -628,6 +760,9 @@ function SingleChat({ onlineUsers }) {
     if (!chatSearchQuery.trim()) return true;
     return m.content?.toLowerCase().includes(chatSearchQuery.toLowerCase());
   });
+  const pinnedMessages = messages.filter((m) => m.isPinned && !m.isDeleted);
+  const galleryImages = messages.filter((m) => m.messageType === "file" && m.fileType === "image" && m.fileUrl && !m.isDeleted);
+  const galleryDocs = messages.filter((m) => m.messageType === "file" && m.fileType !== "image" && m.fileUrl && !m.isDeleted);
 
   if (!user || !user._id) {
     return (
@@ -691,6 +826,15 @@ function SingleChat({ onlineUsers }) {
         {/* SEARCH & ACTIONS */}
         {isAllowed && (
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => setIsGalleryOpen(true)}
+              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              title="Media and documents"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4-4a2 2 0 012.8 0l1.2 1.2 2.2-2.2a2 2 0 012.8 0l3 3M4 6h16M4 6v12h16V6M8 10h.01" />
+              </svg>
+            </button>
             <button 
               onClick={() => {
                 setIsSearching(!isSearching);
@@ -727,6 +871,16 @@ function SingleChat({ onlineUsers }) {
           >
             Close
           </button>
+        </div>
+      )}
+
+      {pinnedMessages.length > 0 && isAllowed && (
+        <div className="px-5 py-2.5 border-b border-[#202022] bg-[#101010] flex items-center gap-3 z-10">
+          <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Pinned</span>
+          <div className="flex-1 min-w-0 text-xs text-zinc-400 truncate">
+            {pinnedMessages[0].content || pinnedMessages[0].fileName || "Pinned attachment"}
+          </div>
+          <span className="text-[10px] text-zinc-600 font-bold">{pinnedMessages.length}</span>
         </div>
       )}
 
@@ -828,6 +982,20 @@ function SingleChat({ onlineUsers }) {
                             </p>
                           )}
 
+                          {!msg.isDeleted && (msg.isForwarded || msg.isPinned) && (
+                            <div className="flex gap-1.5 mb-1">
+                              {msg.isForwarded && <span className="text-[9px] font-black uppercase tracking-widest text-zinc-500">Forwarded</span>}
+                              {msg.isPinned && <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Pinned</span>}
+                            </div>
+                          )}
+
+                          {msg.replyTo && !msg.isDeleted && (
+                            <div className="mb-2 rounded-lg border-l-2 border-emerald-400 bg-black/20 px-3 py-2">
+                              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400 truncate">{msg.replyTo.senderName || "Reply"}</p>
+                              <p className="text-[11px] text-zinc-400 truncate">{msg.replyTo.content || msg.replyTo.messageType || "Message"}</p>
+                            </div>
+                          )}
+
                           {msg.isDeleted ? (
                             <div className="flex items-center gap-2 select-none">
                               <span className="text-[12px]">X</span>
@@ -843,7 +1011,7 @@ function SingleChat({ onlineUsers }) {
                                     src={msg.fileUrl} 
                                     alt="Chat Attachment" 
                                     className="max-w-full rounded-xl max-h-[300px] object-cover cursor-zoom-in"
-                                    onClick={(e) => { e.stopPropagation(); window.open(msg.fileUrl, '_blank'); }}
+                                    onClick={(e) => { e.stopPropagation(); setPreviewImage(msg.fileUrl); }}
                                   />
                                   <div className="absolute bottom-2 right-2 flex items-center gap-1.5 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full text-[9px] text-white">
                                     <span>{new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
@@ -878,6 +1046,10 @@ function SingleChat({ onlineUsers }) {
                             </div>
                           ) : (
                             <p className="break-words leading-relaxed whitespace-pre-line text-zinc-100">{msg.content}</p>
+                          )}
+
+                          {msg.isEdited && !msg.isDeleted && (
+                            <p className="text-[9px] text-zinc-600 mt-1 text-right font-semibold">Edited</p>
                           )}
 
                           {/* TIME & STATUS */}
@@ -941,8 +1113,62 @@ function SingleChat({ onlineUsers }) {
                               </svg>
                             </button>
 
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleStartReply(msg); }}
+                              className="w-7 h-7 rounded-full text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                              title="Reply"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14l-4-4m0 0l4-4m-4 4h11a4 4 0 014 4v1" />
+                              </svg>
+                            </button>
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); openForwardModal(msg); }}
+                              className="w-7 h-7 rounded-full text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                              title="Forward"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 12h15" />
+                              </svg>
+                            </button>
+
+                            {msg.content && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); handleCopyMessage(msg); }}
+                                className="w-7 h-7 rounded-full text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                                title="Copy"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 8h10v10H8zM6 16H5a2 2 0 01-2-2V5a2 2 0 012-2h9a2 2 0 012 2v1" />
+                                </svg>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleTogglePin(msg); }}
+                              className="w-7 h-7 rounded-full text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                              title={msg.isPinned ? "Unpin" : "Pin"}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l6 6-3 1-4 7-2-2 7-4 1-3-6-6z" />
+                              </svg>
+                            </button>
+
                             {/* Delete trigger (only for outgoing messages) */}
                             {isMe && (
+                              <>
+                              {msg.messageType === "text" && (
+                                <button
+                                  onClick={(e) => { e.stopPropagation(); handleStartEdit(msg); }}
+                                  className="w-7 h-7 rounded-full text-zinc-400 hover:text-emerald-400 hover:bg-zinc-800/80 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
+                                  title="Edit message"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 20h4l10-10-4-4L4 16v4zM14 6l4 4" />
+                                  </svg>
+                                </button>
+                              )}
                               <button
                                 onClick={(e) => { e.stopPropagation(); handleDeleteMessage(msg._id); }}
                                 className="w-7 h-7 rounded-full text-zinc-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 flex items-center justify-center bg-[#111111] border border-[#2a2a2a]/60 shadow-md"
@@ -952,6 +1178,7 @@ function SingleChat({ onlineUsers }) {
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                               </button>
+                              </>
                             )}
                           </div>
                         )}
@@ -966,6 +1193,31 @@ function SingleChat({ onlineUsers }) {
 
           {/* CHAT INPUT FORM */}
           <div className="p-4 bg-[#111111]/95 backdrop-blur-md z-10 border-t border-[#202022]">
+            {(replyTo || editingMessage) && (
+              <div className="max-w-6xl mx-auto mb-3 rounded-xl border border-[#2a2a2a] bg-[#161616] px-4 py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                    {editingMessage ? "Editing message" : `Replying to ${replyTo?.sender === user._id ? "you" : targetName}`}
+                  </p>
+                  <p className="text-xs text-zinc-400 truncate">
+                    {editingMessage?.content || replyTo?.content || replyTo?.fileName || "Attachment"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setReplyTo(null);
+                    setEditingMessage(null);
+                    if (editingMessage) setMessage("");
+                  }}
+                  className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-[#202022] transition"
+                  title="Cancel"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            )}
             {isRecording ? (
               <div className="flex items-center gap-4 bg-red-950/20 rounded-2xl px-6 py-3 border border-red-500/20 animate-pulse max-w-6xl mx-auto">
                 <div className="flex items-center gap-3 flex-1">
@@ -1015,12 +1267,12 @@ function SingleChat({ onlineUsers }) {
                   value={message}
                   onChange={handleInputChange}
                   onKeyDown={handleKeyPress}
-                  placeholder={isUploading ? "Uploading attachment..." : "Type a message..."}
+                  placeholder={isUploading ? "Uploading attachment..." : editingMessage ? "Edit message..." : "Type a message..."}
                   disabled={isUploading}
                   className="flex-1 px-5 py-3 rounded-xl bg-[#161616] border border-[#2a2a2a] text-[#e9edef] placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-sm transition"
                 />
 
-                {!message.trim() ? (
+                {!message.trim() && !editingMessage ? (
                   <button
                     onClick={startRecording}
                     className="border border-[#2a2a2a] bg-[#161616] text-zinc-400 hover:text-white w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:scale-105 hover:border-emerald-500/30 active:scale-95"
@@ -1043,6 +1295,103 @@ function SingleChat({ onlineUsers }) {
             )}
           </div>
         </>
+      )}
+
+      {previewImage && (
+        <div className="fixed inset-0 z-[1000] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => setPreviewImage(null)}>
+          <button
+            onClick={() => setPreviewImage(null)}
+            className="absolute top-5 right-5 p-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition"
+            title="Close preview"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img src={previewImage} alt="Preview" className="max-w-full max-h-full rounded-xl object-contain shadow-2xl" onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
+      {isForwardOpen && (
+        <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-sm bg-[#161616] border border-[#2a2a2a] rounded-2xl shadow-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-[#2a2a2a] flex items-center justify-between">
+              <h3 className="text-sm font-bold text-white">Forward message</h3>
+              <button onClick={() => setIsForwardOpen(false)} className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-[#202022] transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="max-h-80 overflow-y-auto p-3">
+              {forwardTargets.length === 0 ? (
+                <p className="text-xs text-zinc-500 text-center py-8">No accepted contacts available.</p>
+              ) : (
+                forwardTargets.map((target) => (
+                  <button
+                    key={target._id}
+                    onClick={() => forwardToUser(target)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-[#202022] transition text-left"
+                  >
+                    <div className="w-9 h-9 rounded-lg bg-[#111111] border border-[#2a2a2a] overflow-hidden flex items-center justify-center text-emerald-400 font-bold">
+                      {target.profilePic ? <img src={target.profilePic} alt={target.name} className="w-full h-full object-cover" /> : target.name?.[0]?.toUpperCase()}
+                    </div>
+                    <span className="text-sm text-white font-semibold truncate">{target.name}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isGalleryOpen && (
+        <div className="fixed inset-0 z-[1000] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-3xl max-h-[85vh] bg-[#161616] border border-[#2a2a2a] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-[#2a2a2a] flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-bold text-white">Media and documents</h3>
+                <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{galleryImages.length} images / {galleryDocs.length} docs</p>
+              </div>
+              <button onClick={() => setIsGalleryOpen(false)} className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-[#202022] transition">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-6">
+              <section>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-3">Images</h4>
+                {galleryImages.length === 0 ? (
+                  <p className="text-xs text-zinc-500">No shared images yet.</p>
+                ) : (
+                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                    {galleryImages.map((item) => (
+                      <button key={item._id} onClick={() => setPreviewImage(item.fileUrl)} className="aspect-square rounded-xl overflow-hidden border border-[#2a2a2a] bg-[#111111]">
+                        <img src={item.fileUrl} alt={item.fileName || "Shared image"} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </section>
+              <section>
+                <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-400 mb-3">Documents</h4>
+                {galleryDocs.length === 0 ? (
+                  <p className="text-xs text-zinc-500">No shared documents yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {galleryDocs.map((item) => (
+                      <a key={item._id} href={item.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[#111111] border border-[#2a2a2a] hover:border-emerald-500/30 transition">
+                        <span className="text-xs text-white font-semibold truncate">{item.fileName || "Document"}</span>
+                        <span className="text-[10px] text-emerald-400 font-black uppercase tracking-widest">Open</span>
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ANIMATION KEYFRAMES & STYLING */}
