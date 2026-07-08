@@ -367,6 +367,8 @@ module.exports = {
   registerUser, 
   loginUser, 
   sendOTP, 
+  sendResetOTP,
+  resetPassword,
   updateUserProfile, 
   getVapidPublicKey, 
   subscribeUser, 
