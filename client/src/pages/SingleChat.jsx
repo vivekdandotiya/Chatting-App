@@ -91,7 +91,7 @@ const VoicePlayer = ({ voiceUrl, isMe }) => {
   );
 };
 
-function SingleChat({ onlineUsers }) {
+function SingleChat({ onlineUsers, onStartCall }) {
   const { id } = useParams();
   const navigate = useNavigate();
 
@@ -132,6 +132,18 @@ function SingleChat({ onlineUsers }) {
   const [forwardTargets, setForwardTargets] = useState([]);
 
   const emojis = ["<3", "Ha", "Wow", "Sad", "Thx", "+1"];
+
+  const startNewCall = (callType) => {
+    if (onStartCall) {
+      onStartCall({
+        peerId: id,
+        peerName: targetName,
+        peerPic: targetPic,
+        callType,
+        direction: "outgoing"
+      });
+    }
+  };
 
   const bottomRef = useRef();
   const isInitialLoadRef = useRef(true);
@@ -826,6 +838,24 @@ function SingleChat({ onlineUsers }) {
         {/* SEARCH & ACTIONS */}
         {isAllowed && (
           <div className="flex items-center gap-1">
+            <button
+              onClick={() => startNewCall("audio")}
+              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              title="Voice call"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+            </button>
+            <button
+              onClick={() => startNewCall("video")}
+              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              title="Video call"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+              </svg>
+            </button>
             <button
               onClick={() => setIsGalleryOpen(true)}
               className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"

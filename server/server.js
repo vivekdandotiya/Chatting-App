@@ -550,6 +550,44 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 🔥 WEB RTC SIGNALING FOR VOICE/VIDEO CALLS
+  socket.on("initiateCall", ({ senderId, receiverId, signalData, callType, callerName, callerPic }) => {
+    const receiverSocket = users[receiverId];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("incomingCall", { senderId, signalData, callType, callerName, callerPic });
+    } else {
+      socket.emit("callFailed", { message: "User is offline" });
+    }
+  });
+
+  socket.on("acceptCall", ({ callerId, signalData }) => {
+    const callerSocket = users[callerId];
+    if (callerSocket) {
+      io.to(callerSocket).emit("callAccepted", { signalData });
+    }
+  });
+
+  socket.on("rejectCall", ({ callerId }) => {
+    const callerSocket = users[callerId];
+    if (callerSocket) {
+      io.to(callerSocket).emit("callRejected");
+    }
+  });
+
+  socket.on("endCall", ({ peerId }) => {
+    const peerSocket = users[peerId];
+    if (peerSocket) {
+      io.to(peerSocket).emit("callEnded");
+    }
+  });
+
+  socket.on("iceCandidate", ({ peerId, candidate }) => {
+    const peerSocket = users[peerId];
+    if (peerSocket) {
+      io.to(peerSocket).emit("iceCandidate", { candidate });
+    }
+  });
+
   // 🔥 UPDATE PROFILE BROADCAST
   socket.on("updateProfile", (data) => {
     // Notify EVERYONE about the profile change

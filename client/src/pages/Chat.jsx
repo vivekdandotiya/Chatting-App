@@ -6,6 +6,7 @@ import SingleChat from "./SingleChat";
 import GameZone from "../components/GameZone";
 import io from "socket.io-client";
 import AppLockScreen from "../components/AppLockScreen";
+import CallOverlay from "../components/CallOverlay";
 
 const socket = io(import.meta.env.VITE_BACKEND_URL);
 
@@ -77,6 +78,12 @@ function Chat() {
 
   const currentUser = JSON.parse(localStorage.getItem("user") || sessionStorage.getItem("user"));
   const [sessionUnlocked, setSessionUnlocked] = useState(sessionStorage.getItem("varta_unlocked") === "true");
+  const [activeCall, setActiveCall] = useState(null);
+  const activeCallRef = useRef(null);
+
+  useEffect(() => {
+    activeCallRef.current = activeCall;
+  }, [activeCall]);
 
   const wakeServer = async () => {
     try {
@@ -284,6 +291,23 @@ function Chat() {
       );
     });
 
+    const handleIncomingCall = ({ senderId, signalData, callType, callerName, callerPic }) => {
+      if (activeCallRef.current) {
+        socket.emit("rejectCall", { callerId: senderId });
+        return;
+      }
+      setActiveCall({
+        peerId: senderId,
+        peerName: callerName,
+        peerPic: callerPic,
+        callType,
+        direction: "incoming",
+        incomingOfferSignal: signalData
+      });
+    };
+
+    socket.on("incomingCall", handleIncomingCall);
+
     return () => {
       socket.off("connect", handleConnect);
       socket.off("onlineUsers");
@@ -291,6 +315,7 @@ function Chat() {
       socket.off("receiveInvite");
       socket.off("inviteAccepted");
       socket.off("userProfileUpdated");
+      socket.off("incomingCall", handleIncomingCall);
     };
 
   }, [currentUser?._id]);
@@ -367,7 +392,7 @@ function Chat() {
             {activeGame ? (
               <GameZone game={activeGame} />
             ) : id ? (
-              <SingleChat key={id} onlineUsers={onlineUsers} />
+              <SingleChat key={id} onlineUsers={onlineUsers} onStartCall={(callInfo) => setActiveCall(callInfo)} />
             ) : (
               <VartaHome />
             )}
@@ -378,7 +403,7 @@ function Chat() {
         activeGame ? (
           <GameZone game={activeGame} onClose={handleCloseGame} />
         ) : id ? (
-          <SingleChat key={id} onlineUsers={onlineUsers} />
+          <SingleChat key={id} onlineUsers={onlineUsers} onStartCall={(callInfo) => setActiveCall(callInfo)} />
         ) : (
           <Sidebar
             users={users}
@@ -389,6 +414,20 @@ function Chat() {
             socket={socket}
           />
         )
+      )}
+
+      {activeCall && (
+        <CallOverlay
+          user={currentUser}
+          peerId={activeCall.peerId}
+          peerName={activeCall.peerName}
+          peerPic={activeCall.peerPic}
+          socket={socket}
+          callType={activeCall.callType}
+          initialDirection={activeCall.direction}
+          incomingOfferSignal={activeCall.incomingOfferSignal}
+          onClose={() => setActiveCall(null)}
+        />
       )}
     </div>
   );
