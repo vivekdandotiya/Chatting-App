@@ -359,21 +359,8 @@ function Chat() {
     );
   }
 
-  // STATUS DOT COMPONENT
-  const renderServerStatusDot = () => {
-    return (
-      <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full z-[100] backdrop-blur-sm">
-        <div className={`w-2 h-2 ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"} rounded-full`}></div>
-        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest whitespace-nowrap">
-          {isServerReady ? "Server Ready" : "Server Waking..."}
-        </span>
-      </div>
-    );
-  };
-
   return (
     <div className="flex h-[100dvh] w-full max-w-full overflow-hidden relative bg-[#0c0c0c]">
-      {!id && renderServerStatusDot()}
 
       {isDesktop ? (
         // DESKTOP SPLIT VIEW
@@ -386,6 +373,7 @@ function Chat() {
               onlineUsers={onlineUsers}
               refreshUsers={refreshUsers}
               socket={socket}
+              isServerReady={isServerReady}
             />
           </div>
           <div className="flex-1 h-full relative">
@@ -412,6 +400,7 @@ function Chat() {
             onlineUsers={onlineUsers}
             refreshUsers={refreshUsers}
             socket={socket}
+            isServerReady={isServerReady}
           />
         )
       )}

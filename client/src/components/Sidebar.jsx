@@ -5,7 +5,7 @@ import ProfileModal from "./ProfileModal";
 import StatusModal from "./StatusModal";
 import StatusViewer from "./StatusViewer";
 
-function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }) {
+function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, isServerReady }) {
   const navigate = useNavigate();
   const { id: activeChatId } = useParams();
   
@@ -136,16 +136,26 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket }
             <span>Chats</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow"></span>
           </h1>
-          <button 
-            onClick={() => setIsProfileOpen(true)}
-            className="w-10 h-10 rounded-full border border-[#2a2a2a] overflow-hidden bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 flex items-center justify-center hover:scale-105 hover:border-emerald-500/50 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)]"
-          >
-            {currentUser?.profilePic ? (
-              <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-sm font-extrabold text-emerald-400">{getInitials(currentUser?.name)}</span>
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Server Status Indicator */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#161616] border border-[#2a2a2a] rounded-full select-none">
+              <span className={`w-1.5 h-1.5 rounded-full ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"}`} />
+              <span className="text-[8px] font-black uppercase tracking-widest text-zinc-400">
+                {isServerReady ? "Live" : "Waking"}
+              </span>
+            </div>
+            {/* Profile Button */}
+            <button 
+              onClick={() => setIsProfileOpen(true)}
+              className="w-10 h-10 rounded-full border border-[#2a2a2a] overflow-hidden bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 flex items-center justify-center hover:scale-105 hover:border-emerald-500/50 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] flex-shrink-0"
+            >
+              {currentUser?.profilePic ? (
+                <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-sm font-extrabold text-emerald-400">{getInitials(currentUser?.name)}</span>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* SEARCH BAR */}
