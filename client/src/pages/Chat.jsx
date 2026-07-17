@@ -373,7 +373,7 @@ function Chat() {
 
   return (
     <div className="flex h-[100dvh] w-full max-w-full overflow-hidden relative bg-[#0c0c0c]">
-      {renderServerStatusDot()}
+      {!id && renderServerStatusDot()}
 
       {isDesktop ? (
         // DESKTOP SPLIT VIEW

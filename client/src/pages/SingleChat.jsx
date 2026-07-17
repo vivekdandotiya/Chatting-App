@@ -788,19 +788,19 @@ function SingleChat({ onlineUsers, onStartCall }) {
     <div className="flex flex-col h-full w-full bg-[#0c0c0c] text-white overflow-hidden relative font-sans">
       
       {/* HEADER */}
-      <div className="bg-[#111111]/85 backdrop-blur-md px-5 py-3.5 flex items-center justify-between border-b border-[#202022] flex-shrink-0 z-10 shadow-lg">
-        <div className="flex gap-4 items-center">
+      <div className="bg-[#111111]/85 backdrop-blur-md px-4 sm:px-5 py-3.5 flex items-center justify-between border-b border-[#202022] flex-shrink-0 z-10 shadow-lg">
+        <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1 mr-4">
           {/* Back button hidden on desktop when split screen */}
           <button 
             onClick={() => navigate("/chat")}
-            className="md:hidden hover:bg-zinc-800 p-2 rounded-xl transition text-zinc-400 hover:text-white"
+            className="md:hidden hover:bg-zinc-800 p-2 rounded-xl transition text-zinc-400 hover:text-white flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border border-[#2a2a2a] flex items-center justify-center overflow-hidden">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border border-[#2a2a2a] flex items-center justify-center overflow-hidden flex-shrink-0">
                {targetPic ? (
                  <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
                ) : (
@@ -808,26 +808,26 @@ function SingleChat({ onlineUsers, onStartCall }) {
                )}
             </div>
 
-            <div>
-               <h2 className="text-[15px] font-bold text-white tracking-tight leading-snug">{targetName}</h2>
+            <div className="min-w-0 flex-1">
+               <h2 className="text-[15px] font-bold text-white tracking-tight leading-snug truncate">{targetName}</h2>
                {isTargetTyping ? (
-                 <p className="text-[11px] text-emerald-400 font-bold animate-pulse">typing...</p>
+                 <p className="text-[11px] text-emerald-400 font-bold animate-pulse truncate">typing...</p>
                ) : (
-                 <p className="text-[11px] flex items-center gap-1 font-medium select-none">
+                 <p className="text-[11px] flex items-center gap-1 font-medium select-none text-zinc-500 truncate">
                    {isAllowed ? (
                      onlineUsers?.[id] ? (
                        <>
-                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                         <span className="text-emerald-400">Online</span>
+                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0" />
+                         <span className="text-emerald-400 truncate">Online</span>
                        </>
                      ) : (
                        <>
-                         <span className="w-1.5 h-1.5 rounded-full bg-zinc-600" />
-                         <span className="text-zinc-500">Offline</span>
+                         <span className="w-1.5 h-1.5 rounded-full bg-zinc-600 flex-shrink-0" />
+                         <span className="truncate">Offline</span>
                        </>
                      )
                    ) : (
-                     <span className="text-zinc-500">Connection info</span>
+                     <span className="truncate">Connection info</span>
                    )}
                  </p>
                )}
@@ -837,7 +837,7 @@ function SingleChat({ onlineUsers, onStartCall }) {
 
         {/* SEARCH & ACTIONS */}
         {isAllowed && (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
             <button
               onClick={() => startNewCall("audio")}
               className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
