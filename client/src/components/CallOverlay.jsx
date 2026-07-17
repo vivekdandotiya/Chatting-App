@@ -23,6 +23,7 @@ const CallOverlay = ({
   const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const durationIntervalRef = useRef(null);
+  const iceCandidatesQueueRef = useRef([]);
   
   // Synthesized audio references
   const audioCtxRef = useRef(null);
@@ -150,6 +151,18 @@ const CallOverlay = ({
       pc.addTrack(track, stream);
     });
 
+    // Process any queued ICE candidates that arrived before peerConnection was ready
+    if (iceCandidatesQueueRef.current.length > 0) {
+      iceCandidatesQueueRef.current.forEach(async (candidate) => {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn("Failed to add queued ICE candidate:", err);
+        }
+      });
+      iceCandidatesQueueRef.current = [];
+    }
+
     // Remote stream capture
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
@@ -176,7 +189,6 @@ const CallOverlay = ({
         stopRingingSound();
         startDurationTimer();
       } else if (
-        pc.connectionState === "disconnected" ||
         pc.connectionState === "failed" ||
         pc.connectionState === "closed"
       ) {
@@ -331,13 +343,17 @@ const CallOverlay = ({
     };
 
     const handleIceCandidate = async ({ candidate }) => {
-      if (peerConnectionRef.current && candidate) {
-        try {
-          await peerConnectionRef.current.addIceCandidate(
-            new RTCIceCandidate(candidate)
-          );
-        } catch (err) {
-          console.warn("Failed to add ICE candidate:", err);
+      if (candidate) {
+        if (peerConnectionRef.current) {
+          try {
+            await peerConnectionRef.current.addIceCandidate(
+              new RTCIceCandidate(candidate)
+            );
+          } catch (err) {
+            console.warn("Failed to add ICE candidate:", err);
+          }
+        } else {
+          iceCandidatesQueueRef.current.push(candidate);
         }
       }
     };
@@ -568,6 +584,14 @@ const CallOverlay = ({
           </div>
         )}
       </div>
+      {remoteStream && callType === "audio" && (
+        <audio
+          ref={(el) => {
+            if (el) el.srcObject = remoteStream;
+          }}
+          autoPlay
+        />
+      )}
     </div>
   );
 };
