@@ -18,6 +18,7 @@ const CallOverlay = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
+  const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
@@ -189,16 +190,26 @@ const CallOverlay = ({
     };
 
     pc.onconnectionstatechange = () => {
+      console.log("Connection State:", pc.connectionState);
+      setDebugInfo((prev) => `${prev}\nConn: ${pc.connectionState}`);
+      
       if (pc.connectionState === "connected") {
         setDirection("active");
         setCallStatus("Connected");
         stopRingingSound();
         startDurationTimer();
-      } else if (
-        pc.connectionState === "failed" ||
-        pc.connectionState === "closed"
-      ) {
+      } else if (pc.connectionState === "failed") {
+        setCallStatus("Connection failed. Reconnecting...");
+      } else if (pc.connectionState === "closed") {
         cleanupAndClose();
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      console.log("ICE State:", pc.iceConnectionState);
+      setDebugInfo((prev) => `${prev}\nICE: ${pc.iceConnectionState}`);
+      if (pc.iceConnectionState === "failed") {
+        setCallStatus("ICE handshake failed.");
       }
     };
 
@@ -366,6 +377,7 @@ const CallOverlay = ({
 
     const handleIceCandidate = async ({ candidate }) => {
       if (candidate) {
+        setDebugInfo((prev) => `${prev}\nCand Recv: ${candidate.candidate.substring(0, 20)}...`);
         if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
           try {
             await peerConnectionRef.current.addIceCandidate(
@@ -603,6 +615,15 @@ const CallOverlay = ({
               </svg>
               End Call
             </button>
+          </div>
+        )}
+
+        {/* DEBUG PANEL */}
+        {debugInfo && (
+          <div className="mt-4 p-2 bg-black/40 border border-zinc-800/80 rounded-lg w-full max-h-24 overflow-y-auto text-[9px] font-mono text-zinc-500 leading-tight select-text text-left">
+            {debugInfo.split('\n').map((line, idx) => (
+              <div key={idx}>{line}</div>
+            ))}
           </div>
         )}
       </div>
