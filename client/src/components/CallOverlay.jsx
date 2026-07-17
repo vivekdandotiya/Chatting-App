@@ -167,17 +167,7 @@ const CallOverlay = ({
       pc.addTrack(track, stream);
     });
 
-    // Process any queued ICE candidates that arrived before peerConnection was ready
-    if (iceCandidatesQueueRef.current.length > 0) {
-      iceCandidatesQueueRef.current.forEach(async (candidate) => {
-        try {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        } catch (err) {
-          console.warn("Failed to add queued ICE candidate:", err);
-        }
-      });
-      iceCandidatesQueueRef.current = [];
-    }
+    // Queue processor defined separately to run after remote description is set
 
     // Remote stream capture
     pc.ontrack = (event) => {
@@ -213,6 +203,20 @@ const CallOverlay = ({
     };
 
     return pc;
+  };
+
+  const processIceQueue = async () => {
+    if (peerConnectionRef.current && iceCandidatesQueueRef.current.length > 0) {
+      console.log(`Processing ${iceCandidatesQueueRef.current.length} queued ICE candidates...`);
+      for (const candidate of iceCandidatesQueueRef.current) {
+        try {
+          await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+        } catch (err) {
+          console.warn("Failed to add queued ICE candidate:", err);
+        }
+      }
+      iceCandidatesQueueRef.current = [];
+    }
   };
 
   // 📞 Outgoing Call flow
@@ -268,6 +272,7 @@ const CallOverlay = ({
       setDirection("active");
       setCallStatus("Connected");
       startDurationTimer();
+      await processIceQueue();
     } catch (err) {
       console.error("Failed to answer call:", err);
       cleanupAndClose();
@@ -336,6 +341,7 @@ const CallOverlay = ({
           setCallStatus("Connected");
           stopRingingSound();
           startDurationTimer();
+          await processIceQueue();
         } catch (err) {
           console.error("Failed to set remote answer:", err);
           cleanupAndClose();
@@ -360,7 +366,7 @@ const CallOverlay = ({
 
     const handleIceCandidate = async ({ candidate }) => {
       if (candidate) {
-        if (peerConnectionRef.current) {
+        if (peerConnectionRef.current && peerConnectionRef.current.remoteDescription) {
           try {
             await peerConnectionRef.current.addIceCandidate(
               new RTCIceCandidate(candidate)
