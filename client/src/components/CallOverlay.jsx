@@ -35,7 +35,23 @@ const CallOverlay = ({
   const iceServers = {
     iceServers: [
       { urls: "stun:stun.l.google.com:19302" },
-      { urls: "stun:stun1.l.google.com:19302" }
+      { urls: "stun:stun1.l.google.com:19302" },
+      { urls: "stun:openrelay.metered.ca:80" },
+      {
+        urls: "turn:openrelay.metered.ca:80",
+        username: "openrelayproject",
+        credential: "openrelayproject"
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443",
+        username: "openrelayproject",
+        credential: "openrelayproject"
+      },
+      {
+        urls: "turn:openrelay.metered.ca:443?transport=tcp",
+        username: "openrelayproject",
+        credential: "openrelayproject"
+      }
     ]
   };
 
@@ -587,7 +603,10 @@ const CallOverlay = ({
       {remoteStream && callType === "audio" && (
         <audio
           ref={(el) => {
-            if (el) el.srcObject = remoteStream;
+            if (el) {
+              el.srcObject = remoteStream;
+              el.play().catch((err) => console.log("Audio play failed:", err));
+            }
           }}
           autoPlay
         />
