@@ -20,8 +20,6 @@ const CallOverlay = ({
   const [callDuration, setCallDuration] = useState(0);
   const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
 
-  const localVideoRef = useRef(null);
-  const remoteVideoRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const iceCandidatesQueueRef = useRef([]);
@@ -146,9 +144,6 @@ const CallOverlay = ({
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
       return stream;
     } catch (err) {
       console.error("Failed to access camera/mic:", err);
@@ -174,9 +169,6 @@ const CallOverlay = ({
     pc.ontrack = (event) => {
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
       }
     };
 
@@ -474,7 +466,9 @@ const CallOverlay = ({
               {/* Remote Stream Video */}
               {remoteStream ? (
                 <video
-                  ref={remoteVideoRef}
+                  ref={(el) => {
+                    if (el) el.srcObject = remoteStream;
+                  }}
                   autoPlay
                   playsInline
                   className="w-full h-full object-cover"
@@ -499,7 +493,9 @@ const CallOverlay = ({
                   </div>
                 ) : (
                   <video
-                    ref={localVideoRef}
+                    ref={(el) => {
+                      if (el && localStream) el.srcObject = localStream;
+                    }}
                     autoPlay
                     playsInline
                     muted
