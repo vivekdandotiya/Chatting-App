@@ -6,14 +6,19 @@ const nodemailer = require("nodemailer");
 // ✅ NODEMAILER CONFIG
 const getTransporter = () => {
   return nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
     auth: {
       user: (process.env.EMAIL_USER || "").trim(),
       pass: (process.env.EMAIL_PASS || "").trim(),
     },
-    connectionTimeout: 5000,
-    greetingTimeout: 5000,
-    socketTimeout: 5000
+    tls: {
+      rejectUnauthorized: false
+    },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 10000
   });
 };
 
@@ -58,14 +63,12 @@ const sendOTP = async (req, res) => {
       text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
     };
 
-    // Dispatch email asynchronously so HTTP request responds instantly
     try {
       const transporter = getTransporter();
-      transporter.sendMail(mailOptions).catch((mailError) => {
-        console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
-      });
+      await transporter.sendMail(mailOptions);
+      console.log(`[AUTH LOG] Email OTP sent to inbox for ${cleanEmail}`);
     } catch (mailError) {
-      console.log("MAIL TRANSPORTER ERROR:", mailError.message);
+      console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
     }
 
     return res.status(200).json({ message: "OTP sent successfully" });
@@ -159,11 +162,10 @@ const sendResetOTP = async (req, res) => {
 
     try {
       const transporter = getTransporter();
-      transporter.sendMail(mailOptions).catch((mailErr) => {
-        console.log("RESET MAIL WARNING:", mailErr.message);
-      });
+      await transporter.sendMail(mailOptions);
+      console.log(`[AUTH LOG] Reset OTP email sent to inbox for ${cleanEmail}`);
     } catch (mailErr) {
-      console.log("RESET TRANSPORTER ERROR:", mailErr.message);
+      console.log("RESET MAIL WARNING:", mailErr.message);
     }
 
     return res.status(200).json({ message: "Password reset code sent successfully" });
