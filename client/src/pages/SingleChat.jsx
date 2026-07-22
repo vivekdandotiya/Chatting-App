@@ -785,35 +785,35 @@ function SingleChat({ onlineUsers, onStartCall }) {
   }
 
   return (
-    <div className="flex flex-col h-full w-full bg-[#0c0c0c] text-white overflow-hidden relative font-sans">
+    <div className="flex flex-col h-full max-h-full w-full bg-[#0c0c0c] text-white overflow-hidden relative font-sans">
       
       {/* HEADER */}
-      <div className="bg-[#111111]/85 backdrop-blur-md px-4 sm:px-5 py-3.5 flex items-center justify-between border-b border-[#202022] flex-shrink-0 z-10 shadow-lg">
-        <div className="flex gap-2 sm:gap-3 items-center min-w-0 flex-1 mr-4">
+      <div className="bg-[#111111]/85 backdrop-blur-md px-3 sm:px-5 py-2.5 sm:py-3.5 flex items-center justify-between border-b border-[#202022] flex-shrink-0 z-10 shadow-lg">
+        <div className="flex gap-1.5 sm:gap-3 items-center min-w-0 flex-1 mr-2 sm:mr-4">
           {/* Back button hidden on desktop when split screen */}
           <button 
             onClick={() => navigate("/chat")}
-            className="md:hidden hover:bg-zinc-800 p-2 rounded-xl transition text-zinc-400 hover:text-white flex-shrink-0"
+            className="md:hidden hover:bg-zinc-800 p-1.5 sm:p-2 rounded-xl transition text-zinc-400 hover:text-white flex-shrink-0"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
           </button>
           <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border border-[#2a2a2a] flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 border border-[#2a2a2a] flex items-center justify-center overflow-hidden flex-shrink-0">
                {targetPic ? (
                  <img src={targetPic} alt={targetName} className="w-full h-full object-cover" />
                ) : (
-                 <span className="font-extrabold text-emerald-400">{targetName[0]?.toUpperCase()}</span>
+                 <span className="font-extrabold text-emerald-400 text-sm sm:text-base">{targetName[0]?.toUpperCase()}</span>
                )}
             </div>
 
             <div className="min-w-0 flex-1">
-               <h2 className="text-[15px] font-bold text-white tracking-tight leading-snug truncate">{targetName}</h2>
+               <h2 className="text-[14px] sm:text-[15px] font-bold text-white tracking-tight leading-snug truncate">{targetName}</h2>
                {isTargetTyping ? (
-                 <p className="text-[11px] text-emerald-400 font-bold animate-pulse truncate">typing...</p>
+                 <p className="text-[10px] sm:text-[11px] text-emerald-400 font-bold animate-pulse truncate">typing...</p>
                ) : (
-                 <p className="text-[11px] flex items-center gap-1 font-medium select-none text-zinc-500 truncate">
+                 <p className="text-[10px] sm:text-[11px] flex items-center gap-1 font-medium select-none text-zinc-500 truncate">
                    {isAllowed ? (
                      onlineUsers?.[id] ? (
                        <>
@@ -840,28 +840,28 @@ function SingleChat({ onlineUsers, onStartCall }) {
           <div className="flex items-center gap-0.5 sm:gap-1 flex-shrink-0">
             <button
               onClick={() => startNewCall("audio")}
-              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              className="p-1.5 sm:p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
               title="Voice call"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
               </svg>
             </button>
             <button
               onClick={() => startNewCall("video")}
-              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              className="p-1.5 sm:p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
               title="Video call"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
               </svg>
             </button>
             <button
               onClick={() => setIsGalleryOpen(true)}
-              className="p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
+              className="p-1.5 sm:p-2 rounded-xl transition border text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"
               title="Media and documents"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4-4a2 2 0 012.8 0l1.2 1.2 2.2-2.2a2 2 0 012.8 0l3 3M4 6h16M4 6v12h16V6M8 10h.01" />
               </svg>
             </button>
@@ -870,10 +870,10 @@ function SingleChat({ onlineUsers, onStartCall }) {
                 setIsSearching(!isSearching);
                 setChatSearchQuery("");
               }}
-              className={`p-2 rounded-xl transition border ${isSearching ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" : "text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"}`}
+              className={`p-1.5 sm:p-2 rounded-xl transition border ${isSearching ? "text-emerald-400 border-emerald-500/20 bg-emerald-500/5" : "text-zinc-400 border-transparent hover:text-white hover:bg-zinc-800"}`}
               title="Search chat"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4.5 h-4.5 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
@@ -1222,7 +1222,7 @@ function SingleChat({ onlineUsers, onStartCall }) {
           </div>
 
           {/* CHAT INPUT FORM */}
-          <div className="p-4 bg-[#111111]/95 backdrop-blur-md z-10 border-t border-[#202022]">
+          <div className="px-3 sm:px-4 py-2.5 sm:py-4 pb-[calc(0.625rem+env(safe-area-inset-bottom))] sm:pb-4 bg-[#111111]/95 backdrop-blur-md z-10 border-t border-[#202022] flex-shrink-0">
             {(replyTo || editingMessage) && (
               <div className="max-w-6xl mx-auto mb-3 rounded-xl border border-[#2a2a2a] bg-[#161616] px-4 py-3 flex items-center gap-3">
                 <div className="flex-1 min-w-0">
@@ -1249,21 +1249,21 @@ function SingleChat({ onlineUsers, onStartCall }) {
               </div>
             )}
             {isRecording ? (
-              <div className="flex items-center gap-4 bg-red-950/20 rounded-2xl px-6 py-3 border border-red-500/20 animate-pulse max-w-6xl mx-auto">
-                <div className="flex items-center gap-3 flex-1">
-                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping"></div>
-                  <span className="text-sm font-semibold text-red-400">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
+              <div className="flex items-center gap-3 sm:gap-4 bg-red-950/20 rounded-2xl px-4 sm:px-6 py-2.5 sm:py-3 border border-red-500/20 animate-pulse max-w-6xl mx-auto">
+                <div className="flex items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+                  <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-ping flex-shrink-0"></div>
+                  <span className="text-xs sm:text-sm font-semibold text-red-400 truncate">Recording: {Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, '0')}</span>
                 </div>
                 <button 
                   onClick={cancelRecording}
-                  className="text-zinc-500 hover:text-white text-xs font-bold uppercase tracking-wider"
+                  className="text-zinc-500 hover:text-white text-[11px] sm:text-xs font-bold uppercase tracking-wider flex-shrink-0"
                 >
                   Cancel
                 </button>
-                <div className="w-px h-6 bg-[#2a2a2a]"></div>
+                <div className="w-px h-6 bg-[#2a2a2a] flex-shrink-0"></div>
                 <button 
                   onClick={stopRecording}
-                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20 hover:scale-105 active:scale-95"
+                  className="bg-red-500 hover:bg-red-600 text-white p-2 rounded-full transition shadow-lg shadow-red-500/20 hover:scale-105 active:scale-95 flex-shrink-0"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                     <rect x="6" y="6" width="12" height="12" />
@@ -1271,7 +1271,7 @@ function SingleChat({ onlineUsers, onStartCall }) {
                 </button>
               </div>
             ) : (
-              <div className="flex gap-2.5 relative items-center max-w-6xl mx-auto select-none">
+              <div className="flex gap-2 sm:gap-2.5 relative items-center max-w-6xl mx-auto select-none">
                 <input 
                    type="file" 
                    ref={fileInputRef} 
@@ -1282,7 +1282,7 @@ function SingleChat({ onlineUsers, onStartCall }) {
                 <button
                   onClick={() => fileInputRef.current.click()}
                   disabled={isUploading}
-                  className={`flex-shrink-0 w-11 h-11 border border-[#2a2a2a] rounded-xl flex items-center justify-center bg-[#161616] transition hover:scale-105 active:scale-95 ${isUploading ? 'opacity-50' : 'text-zinc-400 hover:text-white hover:border-emerald-500/30'}`}
+                  className={`flex-shrink-0 w-10 h-10 sm:w-11 sm:h-11 border border-[#2a2a2a] rounded-xl flex items-center justify-center bg-[#161616] transition hover:scale-105 active:scale-95 ${isUploading ? 'opacity-50' : 'text-zinc-400 hover:text-white hover:border-emerald-500/30'}`}
                 >
                   {isUploading ? (
                      <div className="w-4 h-4 border-2 border-emerald-400 border-t-transparent rounded-full animate-spin"></div>
@@ -1299,13 +1299,13 @@ function SingleChat({ onlineUsers, onStartCall }) {
                   onKeyDown={handleKeyPress}
                   placeholder={isUploading ? "Uploading attachment..." : editingMessage ? "Edit message..." : "Type a message..."}
                   disabled={isUploading}
-                  className="flex-1 px-5 py-3 rounded-xl bg-[#161616] border border-[#2a2a2a] text-[#e9edef] placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-sm transition"
+                  className="flex-1 min-w-0 px-3.5 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-[#161616] border border-[#2a2a2a] text-[#e9edef] placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 text-xs sm:text-sm transition"
                 />
 
                 {!message.trim() && !editingMessage ? (
                   <button
                     onClick={startRecording}
-                    className="border border-[#2a2a2a] bg-[#161616] text-zinc-400 hover:text-white w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:scale-105 hover:border-emerald-500/30 active:scale-95"
+                    className="border border-[#2a2a2a] bg-[#161616] text-zinc-400 hover:text-white w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:scale-105 hover:border-emerald-500/30 active:scale-95"
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
@@ -1314,7 +1314,7 @@ function SingleChat({ onlineUsers, onStartCall }) {
                 ) : (
                   <button
                     onClick={sendMessage}
-                    className="bg-gradient-to-r from-emerald-500 to-teal-400 text-black w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:brightness-110 shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95"
+                    className="bg-gradient-to-r from-emerald-500 to-teal-400 text-black w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center flex-shrink-0 transition hover:brightness-110 shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95"
                   >
                     <svg className="w-5 h-5 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
