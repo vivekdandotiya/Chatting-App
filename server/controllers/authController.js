@@ -11,6 +11,9 @@ const getTransporter = () => {
       user: (process.env.EMAIL_USER || "").trim(),
       pass: (process.env.EMAIL_PASS || "").trim(),
     },
+    connectionTimeout: 5000,
+    greetingTimeout: 5000,
+    socketTimeout: 5000
   });
 };
 
@@ -55,18 +58,20 @@ const sendOTP = async (req, res) => {
       text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
     };
 
+    // Dispatch email asynchronously so HTTP request responds instantly
     try {
       const transporter = getTransporter();
-      await transporter.sendMail(mailOptions);
+      transporter.sendMail(mailOptions).catch((mailError) => {
+        console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
+      });
     } catch (mailError) {
-      console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
-      // If email sending fails due to SMTP auth issue, still log OTP so admin/user can register in dev/testing
+      console.log("MAIL TRANSPORTER ERROR:", mailError.message);
     }
 
-    res.status(200).json({ message: "OTP sent successfully" });
+    return res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     console.log("SEND OTP ERROR:", error);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
@@ -154,15 +159,17 @@ const sendResetOTP = async (req, res) => {
 
     try {
       const transporter = getTransporter();
-      await transporter.sendMail(mailOptions);
+      transporter.sendMail(mailOptions).catch((mailErr) => {
+        console.log("RESET MAIL WARNING:", mailErr.message);
+      });
     } catch (mailErr) {
-      console.log("RESET MAIL WARNING:", mailErr.message);
+      console.log("RESET TRANSPORTER ERROR:", mailErr.message);
     }
 
-    res.status(200).json({ message: "Password reset code sent successfully" });
+    return res.status(200).json({ message: "Password reset code sent successfully" });
   } catch (error) {
     console.log("SEND RESET OTP ERROR:", error);
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
 
