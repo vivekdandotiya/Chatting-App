@@ -195,7 +195,7 @@ const ErrorBanner = ({ message }) => (
     <svg className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
     </svg>
-    <p className="text-red-600 text-xs font-semibold leading-snug">{message}</p>
+    <p className="text-red-600 text-xs font-semibold leading-snug flex-1">{message}</p>
   </div>
 );
 
@@ -204,7 +204,7 @@ const SuccessBanner = ({ message }) => (
     <svg className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 24 24">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.6l-4.2-4.2 1.4-1.4L11 13.8l5.8-5.8 1.4 1.4L11 16.6z" />
     </svg>
-    <p className="text-emerald-700 text-xs font-semibold leading-snug">{message}</p>
+    <p className="text-emerald-700 text-xs font-semibold leading-snug flex-1">{message}</p>
   </div>
 );
 
