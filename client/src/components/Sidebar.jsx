@@ -130,13 +130,13 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
     <div className="w-full h-full max-w-full bg-[#0c0c0c] flex flex-col overflow-hidden border-r border-[#202022] font-sans relative">
       
       {/* HEADER */}
-      <div className="px-5 pt-6 pb-5 border-b border-[#202022] flex-shrink-0 bg-[#0c0c0c] z-10">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
+      <div className="px-4 sm:px-5 pt-4 sm:pt-6 pb-3.5 sm:pb-5 border-b border-[#202022] flex-shrink-0 bg-[#0c0c0c] z-10">
+        <div className="flex items-center justify-between mb-4 sm:mb-5">
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-white tracking-tight flex items-center gap-2">
             <span>Chats</span>
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse-glow"></span>
           </h1>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {/* Server Status Indicator */}
             <div className="flex items-center gap-1.5 px-2.5 py-1 bg-[#161616] border border-[#2a2a2a] rounded-full select-none">
               <span className={`w-1.5 h-1.5 rounded-full ${isServerReady ? "bg-emerald-400" : "bg-red-400 animate-pulse"}`} />
@@ -147,7 +147,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
             {/* Profile Button */}
             <button 
               onClick={() => setIsProfileOpen(true)}
-              className="w-10 h-10 rounded-full border border-[#2a2a2a] overflow-hidden bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 flex items-center justify-center hover:scale-105 hover:border-emerald-500/50 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] flex-shrink-0"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-[#2a2a2a] overflow-hidden bg-gradient-to-tr from-emerald-500/10 to-teal-500/10 flex items-center justify-center hover:scale-105 hover:border-emerald-500/50 active:scale-95 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] flex-shrink-0"
             >
               {currentUser?.profilePic ? (
                 <img src={currentUser.profilePic} alt="Me" className="w-full h-full object-cover" />
@@ -160,7 +160,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
 
         {/* SEARCH BAR */}
         <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 sm:w-5 sm:h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -168,13 +168,13 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
             placeholder="Search conversations..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 bg-[#111111] border border-[#2a2a2a] rounded-xl text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
+            className="w-full pl-9 sm:pl-10 pr-4 py-2.5 sm:py-3 bg-[#111111] border border-[#2a2a2a] rounded-xl text-xs sm:text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20 transition-all duration-300"
           />
         </div>
       </div>
 
       {/* TABS */}
-      <div className="px-4 pt-4 flex gap-2 border-b border-[#202022] overflow-x-auto scrollbar-hide flex-shrink-0 pb-4 bg-[#0c0c0c]">
+      <div className="px-3 sm:px-4 pt-3 sm:pt-4 flex gap-1.5 sm:gap-2 border-b border-[#202022] overflow-x-auto scrollbar-hide flex-shrink-0 pb-3 sm:pb-4 bg-[#0c0c0c]">
         {[
           { id: "chats", label: `Chats`, count: friends.length },
           { id: "status", label: "Status", count: stories.length },
