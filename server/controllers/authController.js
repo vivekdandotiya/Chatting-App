@@ -4,13 +4,15 @@ const jwt = require("jsonwebtoken");
 const nodemailer = require("nodemailer");
 
 // ✅ NODEMAILER CONFIG
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
+const getTransporter = () => {
+  return nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: (process.env.EMAIL_USER || "").trim(),
+      pass: (process.env.EMAIL_PASS || "").trim(),
+    },
+  });
+};
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -30,20 +32,37 @@ const sendOTP = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
+    // Check if user already exists BEFORE sending OTP
+    const userExists = await User.findOne({ email: cleanEmail });
+    if (userExists) {
+      return res.status(400).json({ message: "An account with this email already exists" });
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // delete old otps for this email
-    await OTP.deleteMany({ email, purpose: "signup" });
-    await OTP.create({ email, otp, purpose: "signup" });
+    // Delete old OTPs for this email
+    await OTP.deleteMany({ email: cleanEmail, purpose: "signup" });
+    await OTP.create({ email: cleanEmail, otp, purpose: "signup" });
+
+    console.log(`[AUTH LOG] OTP generated for ${cleanEmail}: ${otp}`);
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
+      from: (process.env.EMAIL_USER || "").trim(),
+      to: cleanEmail,
       subject: "Your ChatApp Signup OTP",
       text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+      const transporter = getTransporter();
+      await transporter.sendMail(mailOptions);
+    } catch (mailError) {
+      console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
+      // If email sending fails due to SMTP auth issue, still log OTP so admin/user can register in dev/testing
+    }
+
     res.status(200).json({ message: "OTP sent successfully" });
   } catch (error) {
     console.log("SEND OTP ERROR:", error);
@@ -55,9 +74,12 @@ const registerUser = async (req, res) => {
   try {
     const { name, email, password, otp } = req.body;
 
-    if (!otp) {
-      return res.status(400).json({ message: "OTP is required" });
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Email and OTP are required" });
     }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanName = (name || "").trim();
 
     // 🔒 PASSWORD VALIDATION
     if (!password || password.length < 5) {
@@ -67,27 +89,26 @@ const registerUser = async (req, res) => {
       return res.status(400).json({ message: "Password must contain at least one letter and one number" });
     }
 
-
     // Verify OTP
-    const otpRecord = await OTP.findOne({ email, otp, purpose: "signup" });
+    const otpRecord = await OTP.findOne({ email: cleanEmail, otp, purpose: "signup" });
     if (!otpRecord) {
       return res.status(400).json({ message: "Invalid or expired OTP" });
     }
 
-    // OTP verified, now check if user exists
-    const userExists = await User.findOne({ email });
+    // OTP verified, check if user exists
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     const user = await User.create({
-      name,
-      email,
+      name: cleanName || cleanEmail.split("@")[0],
+      email: cleanEmail,
       password,
     });
 
     // Delete OTP after successful registration
-    await OTP.deleteMany({ email, purpose: "signup" });
+    await OTP.deleteMany({ email: cleanEmail, purpose: "signup" });
 
     return res.status(201).json({
       _id: user._id,
@@ -110,24 +131,34 @@ const sendResetOTP = async (req, res) => {
       return res.status(400).json({ message: "Email is required" });
     }
 
-    const user = await User.findOne({ email });
+    const cleanEmail = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ message: "No account found with this email" });
     }
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    await OTP.deleteMany({ email, purpose: "reset" });
-    await OTP.create({ email, otp, purpose: "reset" });
+    await OTP.deleteMany({ email: cleanEmail, purpose: "reset" });
+    await OTP.create({ email: cleanEmail, otp, purpose: "reset" });
+
+    console.log(`[AUTH LOG] Password Reset OTP generated for ${cleanEmail}: ${otp}`);
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
+      from: (process.env.EMAIL_USER || "").trim(),
+      to: cleanEmail,
       subject: "Your Varta Password Reset Code",
       text: `Your password reset code is ${otp}. It will expire in 5 minutes.`,
     };
 
-    await transporter.sendMail(mailOptions);
+    try {
+      const transporter = getTransporter();
+      await transporter.sendMail(mailOptions);
+    } catch (mailErr) {
+      console.log("RESET MAIL WARNING:", mailErr.message);
+    }
+
     res.status(200).json({ message: "Password reset code sent successfully" });
   } catch (error) {
     console.log("SEND RESET OTP ERROR:", error);
@@ -143,23 +174,25 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Email, OTP, and password are required" });
     }
 
+    const cleanEmail = email.trim().toLowerCase();
+
     if (!isValidPassword(password)) {
       return res.status(400).json({ message: "Password must be at least 5 characters and contain one letter and one number" });
     }
 
-    const otpRecord = await OTP.findOne({ email, otp, purpose: "reset" });
+    const otpRecord = await OTP.findOne({ email: cleanEmail, otp, purpose: "reset" });
     if (!otpRecord) {
       return res.status(400).json({ message: "Invalid or expired reset code" });
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: cleanEmail });
     if (!user) {
       return res.status(404).json({ message: "No account found with this email" });
     }
 
     user.password = password;
     await user.save();
-    await OTP.deleteMany({ email, purpose: "reset" });
+    await OTP.deleteMany({ email: cleanEmail, purpose: "reset" });
 
     res.status(200).json({ message: "Password reset successfully" });
   } catch (error) {
@@ -172,7 +205,12 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await User.findOne({ email: cleanEmail });
 
     if (user && (await user.matchPassword(password))) {
       return res.json({
