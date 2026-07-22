@@ -160,7 +160,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
 
         {/* SEARCH BAR */}
         <div className="relative">
-          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 sm:w-5 sm:h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-zinc-500 group-focus-within:text-emerald-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
           <input
@@ -188,18 +188,19 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
               setActiveTab(tab.id);
               if (tab.id === "games") {
                 navigate("/chat");
+                setActiveGame("2048");
               }
             }}
-            className={`px-4 py-2 rounded-xl font-bold text-[11px] uppercase tracking-widest transition-all duration-300 flex-shrink-0 border flex items-center gap-1.5 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all duration-300 flex items-center gap-2 whitespace-nowrap flex-shrink-0 ${
               activeTab === tab.id
-                ? "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.05)]"
-                : "border-transparent text-zinc-500 hover:text-zinc-300 hover:bg-[#161616]"
+                ? "bg-gradient-to-r from-emerald-500/20 to-teal-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.1)]"
+                : "text-zinc-500 hover:text-zinc-300 hover:bg-[#161616] border border-transparent"
             }`}
           >
             <span>{tab.label}</span>
             {tab.count > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black ${
-                activeTab === tab.id ? "bg-emerald-400 text-black" : "bg-[#2a2a2a] text-zinc-400"
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                activeTab === tab.id ? "bg-emerald-500 text-black" : "bg-[#202022] text-zinc-400"
               }`}>
                 {tab.count}
               </span>
@@ -257,7 +258,7 @@ function Sidebar({ users, unread, setUnread, onlineUsers, refreshUsers, socket, 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
                         <h3 className="text-white font-semibold text-[14.5px] truncate tracking-tight group-hover:text-emerald-400 transition-colors">{u.name}</h3>
-                        <span className={`text-[9px] font-bold uppercase tracking-widest ${onlineUsers?.[u._id] ? "text-emerald-400" : "text-zinc-600"}`}>
+                        <span className={`text-[9px] font-bold uppercase tracking-widest flex-shrink-0 ml-2 ${onlineUsers?.[u._id] ? "text-emerald-400" : "text-zinc-600"}`}>
                           {onlineUsers?.[u._id] ? "Online" : "Offline"}
                         </span>
                       </div>
