@@ -5,14 +5,18 @@ const nodemailer = require("nodemailer");
 
 // ✅ NODEMAILER CONFIG
 const getTransporter = () => {
+  const user = (process.env.EMAIL_USER || "").trim();
+  const pass = (process.env.EMAIL_PASS || "").trim();
+
+  if (!user || !pass) {
+    throw new Error("Server email configuration is missing (EMAIL_USER or EMAIL_PASS environment variables not set).");
+  }
+
   return nodemailer.createTransport({
     host: "smtp.gmail.com",
     port: 465,
     secure: true,
-    auth: {
-      user: (process.env.EMAIL_USER || "").trim(),
-      pass: (process.env.EMAIL_PASS || "").trim(),
-    },
+    auth: { user, pass },
     tls: {
       rejectUnauthorized: false
     },
@@ -56,11 +60,26 @@ const sendOTP = async (req, res) => {
 
     console.log(`[AUTH LOG] OTP generated for ${cleanEmail}: ${otp}`);
 
+    const senderEmail = (process.env.EMAIL_USER || "").trim();
     const mailOptions = {
-      from: (process.env.EMAIL_USER || "").trim(),
+      from: `"Varta Security" <${senderEmail}>`,
       to: cleanEmail,
-      subject: "Your ChatApp Signup OTP",
-      text: `Your OTP is ${otp}. It will expire in 5 minutes.`,
+      subject: `Your Varta Verification Code: ${otp}`,
+      text: `Your Varta verification code is: ${otp}. It will expire in 5 minutes.`,
+      html: `
+        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 460px; margin: 0 auto; padding: 24px; background-color: #0c0c0c; color: #ffffff; border-radius: 16px; border: 1px solid #202022;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #10b981; font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">Varta</h1>
+            <p style="color: #a1a1aa; font-size: 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Account Verification</p>
+          </div>
+          <div style="background-color: #161616; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;">
+            <p style="color: #d4d4d8; font-size: 13px; margin: 0 0 12px 0;">Enter this code to verify your email address:</p>
+            <div style="font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #10b981; margin: 14px 0;">${otp}</div>
+            <p style="color: #71717a; font-size: 11px; margin: 0; font-weight: 600;">Valid for 5 minutes</p>
+          </div>
+          <p style="color: #71717a; font-size: 11px; text-align: center; margin: 0; leading-height: 1.5;">If you did not request this code, please ignore this message.</p>
+        </div>
+      `
     };
 
     try {
@@ -68,7 +87,10 @@ const sendOTP = async (req, res) => {
       await transporter.sendMail(mailOptions);
       console.log(`[AUTH LOG] Email OTP sent to inbox for ${cleanEmail}`);
     } catch (mailError) {
-      console.log("MAIL SEND WARNING (SMTP Error, check EMAIL_PASS or App Password):", mailError.message);
+      console.error("[AUTH ERROR] MAIL SEND FAILED:", mailError.message);
+      return res.status(500).json({ 
+        message: `Failed to send email verification code (${mailError.message}). Please check server email setup or try again.` 
+      });
     }
 
     return res.status(200).json({ message: "OTP sent successfully" });
@@ -153,11 +175,26 @@ const sendResetOTP = async (req, res) => {
 
     console.log(`[AUTH LOG] Password Reset OTP generated for ${cleanEmail}: ${otp}`);
 
+    const senderEmail = (process.env.EMAIL_USER || "").trim();
     const mailOptions = {
-      from: (process.env.EMAIL_USER || "").trim(),
+      from: `"Varta Security" <${senderEmail}>`,
       to: cleanEmail,
-      subject: "Your Varta Password Reset Code",
+      subject: `Your Varta Password Reset Code: ${otp}`,
       text: `Your password reset code is ${otp}. It will expire in 5 minutes.`,
+      html: `
+        <div style="font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 460px; margin: 0 auto; padding: 24px; background-color: #0c0c0c; color: #ffffff; border-radius: 16px; border: 1px solid #202022;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h1 style="color: #10b981; font-size: 26px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">Varta</h1>
+            <p style="color: #a1a1aa; font-size: 12px; margin-top: 4px; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Password Reset</p>
+          </div>
+          <div style="background-color: #161616; border: 1px solid #2a2a2a; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 20px;">
+            <p style="color: #d4d4d8; font-size: 13px; margin: 0 0 12px 0;">Your password reset code is:</p>
+            <div style="font-size: 34px; font-weight: 900; letter-spacing: 8px; color: #10b981; margin: 14px 0;">${otp}</div>
+            <p style="color: #71717a; font-size: 11px; margin: 0; font-weight: 600;">Valid for 5 minutes</p>
+          </div>
+          <p style="color: #71717a; font-size: 11px; text-align: center; margin: 0;">If you did not request a password reset, please ignore this message.</p>
+        </div>
+      `
     };
 
     try {
@@ -165,7 +202,10 @@ const sendResetOTP = async (req, res) => {
       await transporter.sendMail(mailOptions);
       console.log(`[AUTH LOG] Reset OTP email sent to inbox for ${cleanEmail}`);
     } catch (mailErr) {
-      console.log("RESET MAIL WARNING:", mailErr.message);
+      console.error("[AUTH ERROR] RESET MAIL FAILED:", mailErr.message);
+      return res.status(500).json({ 
+        message: `Failed to send password reset code (${mailErr.message}). Please check server configuration.` 
+      });
     }
 
     return res.status(200).json({ message: "Password reset code sent successfully" });

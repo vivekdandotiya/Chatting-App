@@ -610,7 +610,7 @@ function Signup() {
               <p className="text-slate-500 text-[11px] mt-1 font-medium px-4">
                 {step === 1
                   ? "Join Varta to start chatting with friends"
-                  : `We sent a code to ${email}`}
+                  : `We sent a 6-digit code to ${email}. Please check your Inbox & Spam folder.`}
               </p>
             </div>
 
