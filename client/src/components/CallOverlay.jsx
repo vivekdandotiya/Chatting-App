@@ -135,11 +135,18 @@ const CallOverlay = ({
     }
   };
 
-  // Capture user media streams
+  // Capture user media streams with HD audio and video constraints
   const getMediaStream = async () => {
     try {
       const constraints = {
-        audio: true,
+        audio: {
+          echoCancellation: { ideal: true },
+          noiseSuppression: { ideal: true },
+          autoGainControl: { ideal: true },
+          channelCount: { ideal: 2 },
+          sampleRate: { ideal: 48000 },
+          sampleSize: { ideal: 16 }
+        },
         video: callType === "video" ? { width: 640, height: 480, facingMode: "user" } : false
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
