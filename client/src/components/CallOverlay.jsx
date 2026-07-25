@@ -526,7 +526,10 @@ const CallOverlay = ({
               {remoteStream ? (
                 <video
                   ref={(el) => {
-                    if (el) el.srcObject = remoteStream;
+                    if (el) {
+                      el.srcObject = remoteStream;
+                      el.play().catch((err) => console.log("Remote video play error:", err));
+                    }
                   }}
                   autoPlay
                   playsInline
@@ -558,7 +561,7 @@ const CallOverlay = ({
                     autoPlay
                     playsInline
                     muted
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-x-[-1]"
                   />
                 )}
               </div>
