@@ -17,6 +17,7 @@ const CallOverlay = ({
   const [remoteStream, setRemoteStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
 
@@ -498,22 +499,41 @@ const CallOverlay = ({
         }}
       />
 
-      <div className="w-full max-w-lg bg-[#0e0e12]/90 border border-zinc-800/80 rounded-3xl p-6 flex flex-col items-center shadow-2xl relative overflow-hidden h-[80vh] min-h-[550px]">
+      <div className={`w-full bg-[#0e0e12]/90 border border-zinc-800/80 p-4 sm:p-6 flex flex-col items-center shadow-2xl relative overflow-hidden transition-all duration-300 ${
+        isFullScreen ? "fixed inset-0 z-[1010] max-w-none h-full rounded-none" : "max-w-lg rounded-3xl h-[85vh] min-h-[550px]"
+      }`}>
         {/* Glow aesthetics */}
         <div className="absolute -top-20 -left-20 w-44 h-44 rounded-full bg-emerald-500/5 blur-[80px] pointer-events-none" />
         <div className="absolute -bottom-20 -right-20 w-44 h-44 rounded-full bg-teal-500/5 blur-[80px] pointer-events-none" />
 
         {/* HEADER / LOGO */}
-        <div className="w-full flex items-center justify-between border-b border-zinc-800/60 pb-4 mb-6 relative z-10">
+        <div className="w-full flex items-center justify-between border-b border-zinc-800/60 pb-3 mb-4 sm:mb-6 relative z-10">
           <span className="text-xs font-black uppercase tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
             Varta {callType === "video" ? "Video Call" : "Voice Call"}
           </span>
-          {direction === "active" && (
-            <span className="font-mono text-xs font-bold text-zinc-400">
-              {formatDuration(callDuration)}
-            </span>
-          )}
+          <div className="flex items-center gap-3">
+            {direction === "active" && (
+              <span className="font-mono text-xs font-bold text-zinc-400">
+                {formatDuration(callDuration)}
+              </span>
+            )}
+            <button
+              onClick={() => setIsFullScreen(!isFullScreen)}
+              className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-white transition"
+              title={isFullScreen ? "Exit Fullscreen" : "Fullscreen"}
+            >
+              {isFullScreen ? (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9L4 4m0 0l5 0M4 4l0 5m11 0l5-5m0 0l-5 0m5 0l0 5M9 15l-5 5m0 0l5 0m-5 0l0-5m11 0l5 5m0 0l-5 0m5 0l0-5" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8V4m0 0h4M4 4l5 5m11-5h-4m4 0v4m0-4l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4" />
+                </svg>
+              )}
+            </button>
+          </div>
         </div>
 
         {/* MAIN BODY LAYOUT */}
