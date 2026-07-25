@@ -170,9 +170,26 @@ const CallOverlay = ({
     const pc = new RTCPeerConnection(iceServers);
     peerConnectionRef.current = pc;
 
-    // Add local tracks to P2P
+    // Add local tracks to P2P and configure senders
     stream.getTracks().forEach((track) => {
-      pc.addTrack(track, stream);
+      const sender = pc.addTrack(track, stream);
+      if (sender) {
+        try {
+          const params = sender.getParameters();
+          if (!params.encodings || params.encodings.length === 0) {
+            params.encodings = [{}];
+          }
+          if (track.kind === "video") {
+            params.encodings[0].maxBitrate = 2500000; // 2.5 Mbps target
+            params.encodings[0].degradationPreference = "maintain-framerate";
+          } else if (track.kind === "audio") {
+            params.encodings[0].maxBitrate = 128000; // 128 kbps HD voice
+          }
+          sender.setParameters(params).catch((e) => console.warn("Sender params warning:", e));
+        } catch (e) {
+          console.warn("Could not set sender parameters:", e);
+        }
+      }
     });
 
     // Queue processor defined separately to run after remote description is set
