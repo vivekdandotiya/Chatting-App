@@ -147,7 +147,12 @@ const CallOverlay = ({
           sampleRate: { ideal: 48000 },
           sampleSize: { ideal: 16 }
         },
-        video: callType === "video" ? { width: 640, height: 480, facingMode: "user" } : false
+        video: callType === "video" ? {
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30, max: 30, min: 24 },
+          facingMode: "user"
+        } : false
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
