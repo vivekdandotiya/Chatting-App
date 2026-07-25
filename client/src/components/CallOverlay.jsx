@@ -234,6 +234,23 @@ const CallOverlay = ({
     }
   };
 
+  // SDP optimization for Opus 128kbps stereo & 2.5Mbps video bitrate
+  const optimizeSdp = (sdp) => {
+    let modifiedSdp = sdp;
+    // Set Opus high audio quality & inband FEC
+    if (modifiedSdp.includes("opus/48000")) {
+      modifiedSdp = modifiedSdp.replace(
+        "useinbandfec=1",
+        "useinbandfec=1;maxaveragebitrate=128000;stereo=1;sprop-stereo=1;cbr=0"
+      );
+    }
+    // Set video bandwidth target
+    if (modifiedSdp.includes("m=video")) {
+      modifiedSdp = modifiedSdp.replace("m=video", "m=video\r\nb=AS:2500");
+    }
+    return modifiedSdp;
+  };
+
   // 📞 Outgoing Call flow
   const startCall = async () => {
     startRingingSound(true);
@@ -243,13 +260,18 @@ const CallOverlay = ({
     const pc = initPeerConnection(stream);
     
     try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: callType === "video"
+      });
+      const optimizedOfferSdp = optimizeSdp(offer.sdp);
+      const modifiedOffer = new RTCSessionDescription({ type: offer.type, sdp: optimizedOfferSdp });
+      await pc.setLocalDescription(modifiedOffer);
 
       socket.emit("initiateCall", {
         senderId: user._id,
         receiverId: peerId,
-        signalData: offer,
+        signalData: modifiedOffer,
         callType,
         callerName: user.name,
         callerPic: user.profilePic || ""
@@ -277,11 +299,13 @@ const CallOverlay = ({
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOfferSignal));
       const answer = await pc.createAnswer();
-      await pc.setLocalDescription(answer);
+      const optimizedAnswerSdp = optimizeSdp(answer.sdp);
+      const modifiedAnswer = new RTCSessionDescription({ type: answer.type, sdp: optimizedAnswerSdp });
+      await pc.setLocalDescription(modifiedAnswer);
 
       socket.emit("acceptCall", {
         callerId: peerId,
-        signalData: answer
+        signalData: modifiedAnswer
       });
 
       setDirection("active");
