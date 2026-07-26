@@ -241,11 +241,15 @@ const CallOverlay = ({
     // Remote stream capture with multi-browser track accumulation
     pc.ontrack = (event) => {
       console.log("[WebRTC] Track received:", event.track?.kind, event.streams);
+      let incomingStream = null;
       if (event.streams && event.streams[0]) {
-        setRemoteStream(event.streams[0]);
+        incomingStream = new MediaStream(event.streams[0].getTracks());
       } else if (event.track) {
         remoteMediaStreamRef.current.addTrack(event.track);
-        setRemoteStream(new MediaStream(remoteMediaStreamRef.current.getTracks()));
+        incomingStream = new MediaStream(remoteMediaStreamRef.current.getTracks());
+      }
+      if (incomingStream) {
+        setRemoteStream(incomingStream);
       }
     };
 
