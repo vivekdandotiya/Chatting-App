@@ -24,13 +24,33 @@ const CallOverlay = ({
   const peerConnectionRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const iceCandidatesQueueRef = useRef([]);
-  
+  const callInitiatedRef = useRef(false);
+
+  const localVideoRef = useRef(null);
+  const remoteVideoRef = useRef(null);
+
   // Synthesized audio references
   const audioCtxRef = useRef(null);
   const osc1Ref = useRef(null);
   const osc2Ref = useRef(null);
   const gainRef = useRef(null);
   const ringingIntervalRef = useRef(null);
+
+  // Attach local stream to video element safely (prevent blinking on re-render)
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.muted = true; // Ensure local mic is muted in PIP preview to stop screeching feedback
+    }
+  }, [localStream, callType]);
+
+  // Attach remote stream to video element safely (prevent blinking on re-render)
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch((err) => console.log("Remote video play error:", err));
+    }
+  }, [remoteStream, callType]);
 
   const iceServers = {
     iceServers: [
@@ -144,13 +164,13 @@ const CallOverlay = ({
 
   // Capture user media streams with HD audio and video constraints + automatic fallback
   const getMediaStream = async () => {
-    // Attempt 1: Ideal HD constraints without rigid min bounds
+    // Attempt 1: Ideal HD constraints with boolean audio noise suppression flags
     try {
       const constraints = {
         audio: {
-          echoCancellation: { ideal: true },
-          noiseSuppression: { ideal: true },
-          autoGainControl: { ideal: true }
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
         },
         video: callType === "video" ? {
           width: { ideal: 1280 },
@@ -167,7 +187,11 @@ const CallOverlay = ({
       // Attempt 2: Standard video/audio fallback
       try {
         const fallbackConstraints = {
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
           video: callType === "video" ? true : false
         };
         const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
@@ -412,7 +436,8 @@ const CallOverlay = ({
 
   // Socket event bindings
   useEffect(() => {
-    if (direction === "outgoing") {
+    if (direction === "outgoing" && !callInitiatedRef.current) {
+      callInitiatedRef.current = true;
       startCall();
     } else if (direction === "incoming") {
       startRingingSound(false);
@@ -569,12 +594,7 @@ const CallOverlay = ({
               {/* Remote Stream Video */}
               {remoteStream ? (
                 <video
-                  ref={(el) => {
-                    if (el) {
-                      el.srcObject = remoteStream;
-                      el.play().catch((err) => console.log("Remote video play error:", err));
-                    }
-                  }}
+                  ref={remoteVideoRef}
                   autoPlay
                   playsInline
                   className="w-full h-full object-cover"
@@ -599,9 +619,7 @@ const CallOverlay = ({
                   </div>
                 ) : (
                   <video
-                    ref={(el) => {
-                      if (el && localStream) el.srcObject = localStream;
-                    }}
+                    ref={localVideoRef}
                     autoPlay
                     playsInline
                     muted
