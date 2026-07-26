@@ -167,7 +167,7 @@ const CallOverlay = ({
 
   // Capture user media streams with HD audio and video constraints + automatic fallback
   const getMediaStream = async () => {
-    // Attempt 1: Ideal HD constraints with deep noise suppression flags for laptops & desktop browsers
+    // Attempt 1: Full HD 1080p/720p camera capture constraints with deep noise suppression flags
     try {
       const constraints = {
         audio: {
@@ -180,9 +180,9 @@ const CallOverlay = ({
           googHighpassFilter: true
         },
         video: callType === "video" ? {
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30 },
+          width: { ideal: 1920, max: 1920 },
+          height: { ideal: 1080, max: 1080 },
+          frameRate: { ideal: 30, max: 60 },
           facingMode: "user"
         } : false
       };
@@ -190,8 +190,8 @@ const CallOverlay = ({
       setLocalStream(stream);
       return stream;
     } catch (err1) {
-      console.warn("HD video constraints failed, retrying with basic media fallback:", err1);
-      // Attempt 2: Standard video/audio fallback
+      console.warn("Full HD video constraints failed, retrying with 720p media fallback:", err1);
+      // Attempt 2: Standard 720p video/audio fallback
       try {
         const fallbackConstraints = {
           audio: {
@@ -199,7 +199,11 @@ const CallOverlay = ({
             noiseSuppression: true,
             autoGainControl: true
           },
-          video: callType === "video" ? true : false
+          video: callType === "video" ? {
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+            frameRate: { ideal: 30 }
+          } : false
         };
         const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
         setLocalStream(stream);
@@ -218,7 +222,7 @@ const CallOverlay = ({
     const pc = new RTCPeerConnection(iceServers);
     peerConnectionRef.current = pc;
 
-    // Add local tracks to P2P and configure senders
+    // Add local tracks to P2P and configure senders with 3.5Mbps HD bitrate
     stream.getTracks().forEach((track) => {
       const sender = pc.addTrack(track, stream);
       if (sender && sender.getParameters) {
@@ -226,9 +230,12 @@ const CallOverlay = ({
           const params = sender.getParameters();
           if (params && params.encodings && params.encodings.length > 0) {
             if (track.kind === "video") {
-              params.encodings[0].maxBitrate = 2000000; // 2.0 Mbps target
+              params.encodings[0].maxBitrate = 3500000; // 3.5 Mbps HD video target
+              params.encodings[0].maxFramerate = 30;
+              params.encodings[0].priority = "high";
+              params.encodings[0].networkPriority = "high";
             } else if (track.kind === "audio") {
-              params.encodings[0].maxBitrate = 128000; // 128 kbps HD voice
+              params.encodings[0].maxBitrate = 160000; // 160 kbps Studio Voice
             }
             sender.setParameters(params).catch(() => {});
           }
@@ -303,7 +310,7 @@ const CallOverlay = ({
     }
   };
 
-  // Safe SDP optimization
+  // Safe SDP optimization for Opus 160kbps & 3.5Mbps HD video bandwidth target
   const optimizeSdp = (sdp) => {
     if (!sdp) return sdp;
     let modifiedSdp = sdp;
@@ -311,7 +318,7 @@ const CallOverlay = ({
       if (modifiedSdp.includes("useinbandfec=1")) {
         modifiedSdp = modifiedSdp.replace(
           "useinbandfec=1",
-          "useinbandfec=1;maxaveragebitrate=128000"
+          "useinbandfec=1;maxaveragebitrate=160000;stereo=1"
         );
       }
     } catch (e) {
