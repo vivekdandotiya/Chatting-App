@@ -142,33 +142,43 @@ const CallOverlay = ({
     }
   };
 
-  // Capture user media streams with HD audio and video constraints
+  // Capture user media streams with HD audio and video constraints + automatic fallback
   const getMediaStream = async () => {
+    // Attempt 1: Ideal HD constraints without rigid min bounds
     try {
       const constraints = {
         audio: {
           echoCancellation: { ideal: true },
           noiseSuppression: { ideal: true },
-          autoGainControl: { ideal: true },
-          channelCount: { ideal: 2 },
-          sampleRate: { ideal: 48000 },
-          sampleSize: { ideal: 16 }
+          autoGainControl: { ideal: true }
         },
         video: callType === "video" ? {
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
-          frameRate: { ideal: 30, max: 30, min: 24 },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 30 },
           facingMode: "user"
         } : false
       };
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       setLocalStream(stream);
       return stream;
-    } catch (err) {
-      console.error("Failed to access camera/mic:", err);
-      setCallStatus("Failed to access camera or microphone.");
-      setTimeout(() => cleanupAndClose(), 2000);
-      return null;
+    } catch (err1) {
+      console.warn("HD video constraints failed, retrying with basic media fallback:", err1);
+      // Attempt 2: Standard video/audio fallback
+      try {
+        const fallbackConstraints = {
+          audio: true,
+          video: callType === "video" ? true : false
+        };
+        const stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+        setLocalStream(stream);
+        return stream;
+      } catch (err2) {
+        console.error("Camera/mic access failed:", err2);
+        setCallStatus("Camera or microphone access denied.");
+        setTimeout(() => cleanupAndClose(), 3000);
+        return null;
+      }
     }
   };
 
@@ -180,26 +190,22 @@ const CallOverlay = ({
     // Add local tracks to P2P and configure senders
     stream.getTracks().forEach((track) => {
       const sender = pc.addTrack(track, stream);
-      if (sender) {
+      if (sender && sender.getParameters) {
         try {
           const params = sender.getParameters();
-          if (!params.encodings || params.encodings.length === 0) {
-            params.encodings = [{}];
+          if (params && params.encodings && params.encodings.length > 0) {
+            if (track.kind === "video") {
+              params.encodings[0].maxBitrate = 2000000; // 2.0 Mbps target
+            } else if (track.kind === "audio") {
+              params.encodings[0].maxBitrate = 128000; // 128 kbps HD voice
+            }
+            sender.setParameters(params).catch(() => {});
           }
-          if (track.kind === "video") {
-            params.encodings[0].maxBitrate = 2500000; // 2.5 Mbps target
-            params.encodings[0].degradationPreference = "maintain-framerate";
-          } else if (track.kind === "audio") {
-            params.encodings[0].maxBitrate = 128000; // 128 kbps HD voice
-          }
-          sender.setParameters(params).catch((e) => console.warn("Sender params warning:", e));
         } catch (e) {
-          console.warn("Could not set sender parameters:", e);
+          // ignore sender parameter warnings
         }
       }
     });
-
-    // Queue processor defined separately to run after remote description is set
 
     // Remote stream capture
     pc.ontrack = (event) => {
@@ -237,7 +243,7 @@ const CallOverlay = ({
       console.log("ICE State:", pc.iceConnectionState);
       setDebugInfo((prev) => `${prev}\nICE: ${pc.iceConnectionState}`);
       if (pc.iceConnectionState === "failed") {
-        setCallStatus("ICE handshake failed.");
+        setCallStatus("ICE connection establishing...");
       }
     };
 
@@ -258,19 +264,19 @@ const CallOverlay = ({
     }
   };
 
-  // SDP optimization for Opus 128kbps stereo & 2.5Mbps video bitrate
+  // Safe SDP optimization
   const optimizeSdp = (sdp) => {
+    if (!sdp) return sdp;
     let modifiedSdp = sdp;
-    // Set Opus high audio quality & inband FEC
-    if (modifiedSdp.includes("opus/48000")) {
-      modifiedSdp = modifiedSdp.replace(
-        "useinbandfec=1",
-        "useinbandfec=1;maxaveragebitrate=128000;stereo=1;sprop-stereo=1;cbr=0"
-      );
-    }
-    // Set video bandwidth target
-    if (modifiedSdp.includes("m=video")) {
-      modifiedSdp = modifiedSdp.replace("m=video", "m=video\r\nb=AS:2500");
+    try {
+      if (modifiedSdp.includes("useinbandfec=1")) {
+        modifiedSdp = modifiedSdp.replace(
+          "useinbandfec=1",
+          "useinbandfec=1;maxaveragebitrate=128000"
+        );
+      }
+    } catch (e) {
+      console.warn("SDP format skipped:", e);
     }
     return modifiedSdp;
   };
@@ -288,21 +294,30 @@ const CallOverlay = ({
         offerToReceiveAudio: true,
         offerToReceiveVideo: callType === "video"
       });
-      const optimizedOfferSdp = optimizeSdp(offer.sdp);
-      const modifiedOffer = new RTCSessionDescription({ type: offer.type, sdp: optimizedOfferSdp });
-      await pc.setLocalDescription(modifiedOffer);
+
+      let finalOffer = offer;
+      try {
+        const optimizedOfferSdp = optimizeSdp(offer.sdp);
+        finalOffer = new RTCSessionDescription({ type: offer.type, sdp: optimizedOfferSdp });
+      } catch (sdpErr) {
+        console.warn("Offer SDP optimization skipped:", sdpErr);
+        finalOffer = offer;
+      }
+
+      await pc.setLocalDescription(finalOffer);
 
       socket.emit("initiateCall", {
         senderId: user._id,
         receiverId: peerId,
-        signalData: modifiedOffer,
+        signalData: finalOffer,
         callType,
         callerName: user.name,
         callerPic: user.profilePic || ""
       });
     } catch (err) {
       console.error("Failed to create offer:", err);
-      cleanupAndClose();
+      setCallStatus("Call setup failed.");
+      setTimeout(() => cleanupAndClose(), 2000);
     }
   };
 
@@ -323,13 +338,21 @@ const CallOverlay = ({
     try {
       await pc.setRemoteDescription(new RTCSessionDescription(incomingOfferSignal));
       const answer = await pc.createAnswer();
-      const optimizedAnswerSdp = optimizeSdp(answer.sdp);
-      const modifiedAnswer = new RTCSessionDescription({ type: answer.type, sdp: optimizedAnswerSdp });
-      await pc.setLocalDescription(modifiedAnswer);
+      
+      let finalAnswer = answer;
+      try {
+        const optimizedAnswerSdp = optimizeSdp(answer.sdp);
+        finalAnswer = new RTCSessionDescription({ type: answer.type, sdp: optimizedAnswerSdp });
+      } catch (sdpErr) {
+        console.warn("Answer SDP optimization skipped:", sdpErr);
+        finalAnswer = answer;
+      }
+
+      await pc.setLocalDescription(finalAnswer);
 
       socket.emit("acceptCall", {
         callerId: peerId,
-        signalData: modifiedAnswer
+        signalData: finalAnswer
       });
 
       setDirection("active");
@@ -338,7 +361,8 @@ const CallOverlay = ({
       await processIceQueue();
     } catch (err) {
       console.error("Failed to answer call:", err);
-      cleanupAndClose();
+      setCallStatus("Call connection failed.");
+      setTimeout(() => cleanupAndClose(), 2000);
     }
   };
 
