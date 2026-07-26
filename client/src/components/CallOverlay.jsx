@@ -162,15 +162,22 @@ const CallOverlay = ({
     }
   };
 
+  // Track accumulation ref for laptop browsers that emit individual tracks
+  const remoteMediaStreamRef = useRef(new MediaStream());
+
   // Capture user media streams with HD audio and video constraints + automatic fallback
   const getMediaStream = async () => {
-    // Attempt 1: Ideal HD constraints with boolean audio noise suppression flags
+    // Attempt 1: Ideal HD constraints with deep noise suppression flags for laptops & desktop browsers
     try {
       const constraints = {
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          googEchoCancellation: true,
+          googAutoGainControl: true,
+          googNoiseSuppression: true,
+          googHighpassFilter: true
         },
         video: callType === "video" ? {
           width: { ideal: 1280 },
@@ -231,10 +238,14 @@ const CallOverlay = ({
       }
     });
 
-    // Remote stream capture
+    // Remote stream capture with multi-browser track accumulation
     pc.ontrack = (event) => {
+      console.log("[WebRTC] Track received:", event.track?.kind, event.streams);
       if (event.streams && event.streams[0]) {
         setRemoteStream(event.streams[0]);
+      } else if (event.track) {
+        remoteMediaStreamRef.current.addTrack(event.track);
+        setRemoteStream(new MediaStream(remoteMediaStreamRef.current.getTracks()));
       }
     };
 
@@ -594,7 +605,13 @@ const CallOverlay = ({
               {/* Remote Stream Video */}
               {remoteStream ? (
                 <video
-                  ref={remoteVideoRef}
+                  ref={(el) => {
+                    remoteVideoRef.current = el;
+                    if (el && remoteStream && el.srcObject !== remoteStream) {
+                      el.srcObject = remoteStream;
+                      el.play().catch((err) => console.log("Remote video play error:", err));
+                    }
+                  }}
                   autoPlay
                   playsInline
                   className="w-full h-full object-cover"
@@ -619,7 +636,15 @@ const CallOverlay = ({
                   </div>
                 ) : (
                   <video
-                    ref={localVideoRef}
+                    ref={(el) => {
+                      localVideoRef.current = el;
+                      if (el && localStream && el.srcObject !== localStream) {
+                        el.srcObject = localStream;
+                        el.muted = true;
+                        el.volume = 0;
+                        el.play().catch(() => {});
+                      }
+                    }}
                     autoPlay
                     playsInline
                     muted
