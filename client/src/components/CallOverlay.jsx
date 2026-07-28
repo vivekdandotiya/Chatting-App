@@ -607,6 +607,42 @@ const CallOverlay = ({
     };
   }, [direction, peerId]);
 
+  const [audioLevel, setAudioLevel] = useState(0);
+  const animFrameRef = useRef(null);
+
+  useEffect(() => {
+    const targetStream = remoteStream || localStream;
+    if (!targetStream || direction !== "active") return;
+
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const source = ctx.createMediaStreamSource(targetStream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const updateVolume = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const average = sum / dataArray.length;
+        setAudioLevel(Math.min(100, Math.round((average / 128) * 100)));
+        animFrameRef.current = requestAnimationFrame(updateVolume);
+      };
+      updateVolume();
+
+      return () => {
+        if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+        if (ctx.state !== "closed") ctx.close().catch(() => {});
+      };
+    } catch (e) {
+      console.warn("Audio level visualizer error:", e);
+    }
+  }, [remoteStream, localStream, direction]);
+
   // Controls triggers
   const toggleMute = () => {
     if (localStream) {
@@ -764,10 +800,23 @@ const CallOverlay = ({
               </div>
               
               <h3 className="text-xl font-black text-white mb-2">{peerName}</h3>
-              <p className="text-zinc-500 text-xs uppercase tracking-widest font-black flex items-center gap-1.5">
+              <p className="text-zinc-500 text-xs uppercase tracking-widest font-black flex items-center gap-1.5 mb-2">
                 <span className={`w-1.5 h-1.5 rounded-full ${direction === "active" ? "bg-emerald-400" : "bg-teal-400 animate-pulse"}`}></span>
                 {callStatus}
               </p>
+
+              {/* Dynamic Audio Equalizer Waveform */}
+              {direction === "active" && (
+                <div className="flex items-center gap-1.5 mt-2 h-6">
+                  {[0.6, 1.2, 0.8, 1.4, 0.7].map((factor, i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 bg-gradient-to-t from-emerald-500 to-teal-300 rounded-full transition-all duration-75 shadow-sm shadow-emerald-500/20"
+                      style={{ height: `${Math.max(6, Math.min(24, (audioLevel * factor) / 2.5))}px` }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
