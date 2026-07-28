@@ -1031,6 +1031,32 @@ function SingleChat({ onlineUsers, onStartCall }) {
                               <span className="text-[12px]">X</span>
                               <span>This message was deleted</span>
                             </div>
+                          ) : msg.messageType === "call" ? (
+                            <div className="flex items-center justify-between gap-4 p-2 bg-[#111111] border border-[#2a2a2a] rounded-xl select-none min-w-[200px]">
+                              <div className="flex items-center gap-2.5">
+                                <div className={`p-2 rounded-lg ${msg.callType === "video" ? "bg-emerald-500/10 text-emerald-400" : "bg-teal-500/10 text-teal-400"}`}>
+                                  {msg.callType === "video" ? (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                  ) : (
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.94.725l.548 2.2a1 1 0 01-.321.988l-1.305.98a10.582 10.582 0 004.872 4.872l.98-1.305a1 1 0 01.988-.321l2.2.548a1 1 0 01.725.94V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                  )}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-white">{msg.content || (msg.callType === "video" ? "Video Call" : "Voice Call")}</p>
+                                  <p className="text-[10px] text-zinc-500 font-mono">{msg.duration ? `${msg.duration}` : "Ended"}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => startNewCall(msg.callType || "video")}
+                                className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-lg text-[10px] font-bold uppercase tracking-wider transition active:scale-95"
+                              >
+                                Call Back
+                              </button>
+                            </div>
                           ) : msg.messageType === "voice" ? (
                             <VoicePlayer voiceUrl={msg.voiceUrl} isMe={isMe} />
                           ) : msg.messageType === "file" ? (
