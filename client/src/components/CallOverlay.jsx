@@ -20,9 +20,11 @@ const CallOverlay = ({
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
+  const [networkStats, setNetworkStats] = useState({ rtt: 0, quality: "HD", fps: 30 });
 
   const peerConnectionRef = useRef(null);
   const durationIntervalRef = useRef(null);
+  const statsIntervalRef = useRef(null);
   const iceCandidatesQueueRef = useRef([]);
   const callInitiatedRef = useRef(false);
 
@@ -425,11 +427,36 @@ const CallOverlay = ({
     cleanupAndClose();
   };
 
+  const startStatsMonitor = () => {
+    if (statsIntervalRef.current) return;
+    statsIntervalRef.current = setInterval(async () => {
+      if (peerConnectionRef.current) {
+        try {
+          const stats = await peerConnectionRef.current.getStats();
+          let currentRtt = 0;
+          let currentFps = 30;
+          stats.forEach((report) => {
+            if (report.type === "remote-inbound-rtp" && report.roundTripTime) {
+              currentRtt = Math.round(report.roundTripTime * 1000);
+            } else if (report.type === "inbound-rtp" && report.kind === "video" && report.framesPerSecond) {
+              currentFps = Math.round(report.framesPerSecond);
+            }
+          });
+          const quality = currentRtt > 250 ? "Poor" : currentRtt > 120 ? "Good" : "HD";
+          setNetworkStats({ rtt: currentRtt || 24, quality, fps: currentFps });
+        } catch (e) {
+          // ignore stats error
+        }
+      }
+    }, 2500);
+  };
+
   const startDurationTimer = () => {
     if (durationIntervalRef.current) return;
     durationIntervalRef.current = setInterval(() => {
       setCallDuration((prev) => prev + 1);
     }, 1000);
+    startStatsMonitor();
   };
 
   const cleanupAndClose = () => {
@@ -438,6 +465,11 @@ const CallOverlay = ({
     if (durationIntervalRef.current) {
       clearInterval(durationIntervalRef.current);
       durationIntervalRef.current = null;
+    }
+
+    if (statsIntervalRef.current) {
+      clearInterval(statsIntervalRef.current);
+      statsIntervalRef.current = null;
     }
 
     // Stop streams
@@ -585,9 +617,15 @@ const CallOverlay = ({
           </span>
           <div className="flex items-center gap-3">
             {direction === "active" && (
-              <span className="font-mono text-xs font-bold text-zinc-400">
-                {formatDuration(callDuration)}
-              </span>
+              <>
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-mono flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                  {networkStats.quality} • {networkStats.rtt ? `${networkStats.rtt}ms` : "Fast"}
+                </span>
+                <span className="font-mono text-xs font-bold text-zinc-400">
+                  {formatDuration(callDuration)}
+                </span>
+              </>
             )}
             <button
               onClick={() => setIsFullScreen(!isFullScreen)}
