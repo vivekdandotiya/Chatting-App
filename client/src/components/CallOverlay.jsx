@@ -18,11 +18,13 @@ const CallOverlay = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
   const [networkStats, setNetworkStats] = useState({ rtt: 0, quality: "HD", fps: 30 });
 
   const peerConnectionRef = useRef(null);
+  const screenStreamRef = useRef(null);
   const durationIntervalRef = useRef(null);
   const statsIntervalRef = useRef(null);
   const iceCandidatesQueueRef = useRef([]);
@@ -30,6 +32,48 @@ const CallOverlay = ({
 
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
+
+  const toggleScreenShare = async () => {
+    if (!peerConnectionRef.current) return;
+    try {
+      if (!isScreenSharing) {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const screenTrack = displayStream.getVideoTracks()[0];
+        screenStreamRef.current = displayStream;
+
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        }
+
+        setLocalStream(displayStream);
+        setIsScreenSharing(true);
+
+        screenTrack.onended = async () => {
+          if (localStream && videoSender) {
+            const camTrack = localStream.getVideoTracks()[0];
+            if (camTrack) await videoSender.replaceTrack(camTrack);
+          }
+          setIsScreenSharing(false);
+        };
+      } else {
+        if (screenStreamRef.current) {
+          screenStreamRef.current.getTracks().forEach((t) => t.stop());
+        }
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+        if (localStream && videoSender) {
+          const camTrack = localStream.getVideoTracks()[0];
+          if (camTrack) await videoSender.replaceTrack(camTrack);
+        }
+        setIsScreenSharing(false);
+      }
+    } catch (err) {
+      console.warn("Screen sharing cancelled or failed:", err);
+    }
+  };
 
   // Synthesized audio references
   const audioCtxRef = useRef(null);
@@ -777,26 +821,46 @@ const CallOverlay = ({
 
             {/* Video Toggle Button (Only show if callType is video) */}
             {callType === "video" && (
-              <button
-                onClick={toggleCamera}
-                className={`p-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
-                  isCameraOff
-                    ? "bg-amber-950/20 border-amber-500/30 text-amber-400"
-                    : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-white"
-                }`}
-              >
-                {isCameraOff ? (
-                  // Camera Off Icon
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2zM3 3l18 18" />
-                  </svg>
-                ) : (
-                  // Camera On Icon
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                  </svg>
+              <>
+                <button
+                  onClick={toggleCamera}
+                  className={`p-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
+                    isCameraOff
+                      ? "bg-amber-950/20 border-amber-500/30 text-amber-400"
+                      : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-white"
+                  }`}
+                  title={isCameraOff ? "Turn Camera On" : "Turn Camera Off"}
+                >
+                  {isCameraOff ? (
+                    // Camera Off Icon
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2zM3 3l18 18" />
+                    </svg>
+                  ) : (
+                    // Camera On Icon
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
+
+                {/* Screen Share Button */}
+                {direction === "active" && (
+                  <button
+                    onClick={toggleScreenShare}
+                    className={`p-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center ${
+                      isScreenSharing
+                        ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-400 animate-pulse"
+                        : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-white"
+                    }`}
+                    title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                  </button>
                 )}
-              </button>
+              </>
             )}
 
             {/* End Call Button */}
