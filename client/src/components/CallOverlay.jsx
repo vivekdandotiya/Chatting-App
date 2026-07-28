@@ -616,6 +616,29 @@ const CallOverlay = ({
     };
   }, [direction, peerId]);
 
+  // Adaptive background bitrate optimization to save battery and network data when tab is minimized
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!peerConnectionRef.current || direction !== "active") return;
+      try {
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+        if (videoSender && videoSender.getParameters) {
+          const params = videoSender.getParameters();
+          if (params && params.encodings && params.encodings.length > 0) {
+            params.encodings[0].maxBitrate = document.hidden ? 400000 : 3500000;
+            videoSender.setParameters(params).catch(() => {});
+          }
+        }
+      } catch (e) {
+        // ignore background optimization error
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, [direction]);
+
   const sendInCallMessage = (e) => {
     e?.preventDefault();
     if (!callInput.trim()) return;
