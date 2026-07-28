@@ -19,6 +19,9 @@ const CallOverlay = ({
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isCallChatOpen, setIsCallChatOpen] = useState(false);
+  const [callMessages, setCallMessages] = useState([]);
+  const [callInput, setCallInput] = useState("");
   const [callDuration, setCallDuration] = useState(0);
   const [debugInfo, setDebugInfo] = useState("Initializing WebRTC...");
   const [networkStats, setNetworkStats] = useState({ rtt: 0, quality: "HD", fps: 30 });
@@ -591,11 +594,16 @@ const CallOverlay = ({
       }
     };
 
+    const handleInCallMsg = ({ message }) => {
+      setCallMessages((prev) => [...prev, message]);
+    };
+
     socket.on("callAccepted", handleCallAccepted);
     socket.on("callRejected", handleCallRejected);
     socket.on("callEnded", handleCallEnded);
     socket.on("callFailed", handleCallFailed);
     socket.on("iceCandidate", handleIceCandidate);
+    socket.on("inCallMessage", handleInCallMsg);
 
     return () => {
       socket.off("callAccepted", handleCallAccepted);
@@ -603,9 +611,24 @@ const CallOverlay = ({
       socket.off("callEnded", handleCallEnded);
       socket.off("callFailed", handleCallFailed);
       socket.off("iceCandidate", handleIceCandidate);
+      socket.off("inCallMessage", handleInCallMsg);
       stopRingingSound();
     };
   }, [direction, peerId]);
+
+  const sendInCallMessage = (e) => {
+    e?.preventDefault();
+    if (!callInput.trim()) return;
+    const msgData = {
+      senderId: user._id,
+      senderName: user.name,
+      text: callInput.trim(),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setCallMessages((prev) => [...prev, msgData]);
+    socket.emit("inCallMessage", { receiverId: peerId, message: msgData });
+    setCallInput("");
+  };
 
   const [audioLevel, setAudioLevel] = useState(0);
   const animFrameRef = useRef(null);
@@ -912,7 +935,27 @@ const CallOverlay = ({
               </>
             )}
 
-            {/* End Call Button */}
+            {/* In-Call Chat Button */}
+            {direction === "active" && (
+              <button
+                onClick={() => setIsCallChatOpen(!isCallChatOpen)}
+                className={`p-4 rounded-xl border transition-all active:scale-95 flex items-center justify-center relative ${
+                  isCallChatOpen
+                    ? "bg-emerald-950/40 border-emerald-500/50 text-emerald-400"
+                    : "bg-zinc-900 border-zinc-800/80 text-zinc-400 hover:text-white"
+                }`}
+                title="In-Call Chat"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                {callMessages.length > 0 && !isCallChatOpen && (
+                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-emerald-500 text-[9px] font-black text-black flex items-center justify-center animate-pulse">
+                    {callMessages.length}
+                  </span>
+                )}
+              </button>
+            )}
             <button
               onClick={endActiveCall}
               className="px-6 py-4 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs uppercase tracking-widest font-black transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-red-500/10"
@@ -922,6 +965,64 @@ const CallOverlay = ({
               </svg>
               End Call
             </button>
+          </div>
+        )}
+
+        {/* IN-CALL QUICK TEXT CHAT OVERLAY */}
+        {isCallChatOpen && (
+          <div className="absolute inset-x-0 bottom-24 top-16 bg-[#0c0c10]/95 backdrop-blur-xl border border-zinc-800/80 rounded-2xl z-30 p-4 flex flex-col justify-between shadow-2xl animate-fade-in">
+            <div className="flex items-center justify-between border-b border-zinc-800/60 pb-2 mb-3">
+              <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                In-Call Notes
+              </span>
+              <button 
+                onClick={() => setIsCallChatOpen(false)}
+                className="text-zinc-500 hover:text-white p-1 rounded-lg hover:bg-zinc-800 transition text-xs font-bold"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 font-sans text-xs">
+              {callMessages.length === 0 ? (
+                <div className="h-full flex items-center justify-center text-zinc-600 italic">
+                  No in-call notes sent yet.
+                </div>
+              ) : (
+                callMessages.map((m, idx) => (
+                  <div 
+                    key={idx} 
+                    className={`flex flex-col ${m.senderId === user._id ? "items-end" : "items-start"}`}
+                  >
+                    <div className={`px-3 py-2 rounded-xl max-w-[85%] ${
+                      m.senderId === user._id 
+                        ? "bg-emerald-600/30 border border-emerald-500/30 text-emerald-100" 
+                        : "bg-zinc-800 border border-zinc-700/80 text-zinc-200"
+                    }`}>
+                      <p className="leading-snug break-words">{m.text}</p>
+                      <span className="text-[9px] opacity-60 mt-0.5 block text-right font-mono">{m.time}</span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={sendInCallMessage} className="mt-3 flex gap-2 border-t border-zinc-800/60 pt-3">
+              <input
+                type="text"
+                value={callInput}
+                onChange={(e) => setCallInput(e.target.value)}
+                placeholder="Type a quick message..."
+                className="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-emerald-500/60"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-emerald-500 text-black text-xs font-black rounded-xl hover:brightness-110 active:scale-95 transition"
+              >
+                Send
+              </button>
+            </form>
           </div>
         )}
 

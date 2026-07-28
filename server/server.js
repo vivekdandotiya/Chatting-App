@@ -588,6 +588,13 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("inCallMessage", ({ receiverId, message }) => {
+    const receiverSocket = users[receiverId];
+    if (receiverSocket) {
+      io.to(receiverSocket).emit("inCallMessage", { message });
+    }
+  });
+
   // 🔥 UPDATE PROFILE BROADCAST
   socket.on("updateProfile", (data) => {
     // Notify EVERYONE about the profile change
